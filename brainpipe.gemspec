@@ -1,8 +1,8 @@
 Gem::Specification.new do |spec|
   spec.name          = "brainpipe"
   spec.version       = "0.1.0"
-  spec.authors       = ["Your Name"]
-  spec.email         = ["your.email@example.com"]
+  spec.authors       = ["Ken Miller"]
+  spec.email         = ["ken.miller@gmail.com"]
 
   spec.summary       = "A brief summary of your gem"
   spec.description   = "A longer description of your gem"
