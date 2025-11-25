@@ -1,0 +1,20 @@
+PATH
+  remote: .
+  specs:
+    brainpipe (0.1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    rake (13.3.1)
+
+PLATFORMS
+  arm64-darwin-25
+  ruby
+
+DEPENDENCIES
+  brainpipe!
+  rake (~> 13.0)
+
+BUNDLED WITH
+   2.6.9
