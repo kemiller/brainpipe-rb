@@ -24,15 +24,28 @@ module Brainpipe
       freeze
     end
 
-    def call(namespaces, timeout: nil)
+    def call(namespaces, timeout: nil, metrics_collector: nil, debugger: nil, pipe_name: nil)
       raise EmptyInputError, "Stage '#{name}' received empty input" if namespaces.empty?
 
       effective_timeout = compute_effective_timeout(timeout)
+      start_time = monotonic_time
 
-      if effective_timeout
-        execute_with_timeout(namespaces, effective_timeout)
-      else
-        execute_stage(namespaces, nil)
+      emit_stage_started(namespaces, debugger, metrics_collector, pipe_name)
+
+      begin
+        result = if effective_timeout
+          execute_with_timeout(namespaces, effective_timeout, metrics_collector, debugger, pipe_name)
+        else
+          execute_stage(namespaces, nil, metrics_collector, debugger, pipe_name)
+        end
+
+        duration_ms = (monotonic_time - start_time) * 1000
+        emit_stage_completed(duration_ms, debugger, metrics_collector, pipe_name)
+        result
+      rescue => error
+        duration_ms = (monotonic_time - start_time) * 1000
+        emit_stage_failed(error, duration_ms, debugger, metrics_collector, pipe_name)
+        raise
       end
     end
 
@@ -45,26 +58,59 @@ module Brainpipe
 
     private
 
+    def monotonic_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def emit_stage_started(namespaces, debugger, metrics_collector, pipe_name)
+      debugger&.stage_start(name, mode, namespaces.length)
+      metrics_collector&.stage_started(
+        stage: name,
+        namespace_count: namespaces.length,
+        pipe: pipe_name
+      )
+    end
+
+    def emit_stage_completed(duration_ms, debugger, metrics_collector, pipe_name)
+      debugger&.stage_end(name, duration_ms)
+      metrics_collector&.stage_completed(
+        stage: name,
+        namespace_count: nil,
+        duration_ms: duration_ms,
+        pipe: pipe_name
+      )
+    end
+
+    def emit_stage_failed(error, duration_ms, debugger, metrics_collector, pipe_name)
+      debugger&.stage_error(name, error, duration_ms)
+      metrics_collector&.stage_failed(
+        stage: name,
+        error: error,
+        duration_ms: duration_ms,
+        pipe: pipe_name
+      )
+    end
+
     def compute_effective_timeout(passed_timeout)
       return @timeout unless passed_timeout
       return passed_timeout unless @timeout
       [passed_timeout, @timeout].min
     end
 
-    def execute_with_timeout(namespaces, timeout_value)
-      ::Timeout.timeout(timeout_value) { execute_stage(namespaces, timeout_value) }
+    def execute_with_timeout(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
+      ::Timeout.timeout(timeout_value) { execute_stage(namespaces, timeout_value, metrics_collector, debugger, pipe_name) }
     rescue ::Timeout::Error, ::Timeout::ExitException
       raise TimeoutError, "Stage '#{name}' timed out after #{timeout_value} seconds"
     end
 
-    def execute_stage(namespaces, timeout_value)
+    def execute_stage(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       case mode
       when :merge
-        execute_merge(namespaces, timeout_value)
+        execute_merge(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       when :fan_out
-        execute_fan_out(namespaces, timeout_value)
+        execute_fan_out(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       when :batch
-        execute_batch(namespaces, timeout_value)
+        execute_batch(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       end
     end
 
@@ -100,15 +146,15 @@ module Brainpipe
       end
     end
 
-    def execute_merge(namespaces, timeout_value)
+    def execute_merge(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       merged = merge_namespaces(namespaces)
-      results = execute_operations_parallel([merged], timeout_value)
+      results = execute_operations_parallel([merged], timeout_value, metrics_collector, debugger, pipe_name)
       merge_operation_results(results)
     end
 
-    def execute_fan_out(namespaces, timeout_value)
+    def execute_fan_out(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       results_per_namespace = namespaces.map.with_index do |ns, idx|
-        [idx, execute_operations_parallel([ns], timeout_value)]
+        [idx, execute_operations_parallel([ns], timeout_value, metrics_collector, debugger, pipe_name)]
       end.to_h
 
       namespaces.each_index.map do |idx|
@@ -117,12 +163,12 @@ module Brainpipe
       end
     end
 
-    def execute_batch(namespaces, timeout_value)
-      results = execute_operations_parallel(namespaces, timeout_value)
+    def execute_batch(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
+      results = execute_operations_parallel(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       merge_batch_results(results, namespaces.length)
     end
 
-    def execute_operations_parallel(namespaces, timeout_value)
+    def execute_operations_parallel(namespaces, timeout_value, metrics_collector, debugger, pipe_name)
       return [] if operations.empty?
 
       pool = Concurrent::FixedThreadPool.new([operations.length, 10].min)
@@ -133,7 +179,16 @@ module Brainpipe
         op_timeout = compute_operation_timeout(operation, timeout_value)
         futures << Concurrent::Future.execute(executor: pool) do
           callable = operation.create
-          executor = Executor.new(callable, operation: operation, debug: @debug, timeout: op_timeout)
+          executor = Executor.new(
+            callable,
+            operation: operation,
+            debug: @debug,
+            timeout: op_timeout,
+            metrics_collector: metrics_collector,
+            debugger: debugger,
+            stage_name: name,
+            pipe_name: pipe_name
+          )
           { operation: operation, result: executor.call(namespaces.map(&:dup)) }
         rescue => e
           errors << e

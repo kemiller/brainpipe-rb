@@ -2,22 +2,41 @@ require "timeout"
 
 module Brainpipe
   class Executor
-    attr_reader :callable, :operation, :debug, :timeout
+    attr_reader :callable, :operation, :debug, :timeout, :metrics_collector, :debugger,
+                :stage_name, :pipe_name
 
-    def initialize(callable, operation:, debug: false, timeout: nil)
+    def initialize(callable, operation:, debug: false, timeout: nil, metrics_collector: nil,
+                   debugger: nil, stage_name: nil, pipe_name: nil)
       @callable = callable
       @operation = operation
       @debug = debug
       @timeout = timeout
+      @metrics_collector = metrics_collector
+      @debugger = debugger
+      @stage_name = stage_name
+      @pipe_name = pipe_name
     end
 
     def call(namespaces)
       namespaces.each { |ns| validate_reads!(ns) }
 
       before_states = namespaces.map(&:to_h)
-      result, error_handled = execute_with_error_handling(namespaces)
+      start_time = monotonic_time
 
-      return result if error_handled
+      emit_operation_started(namespaces)
+
+      result, error_handled, error = execute_with_error_handling(namespaces)
+      duration_ms = (monotonic_time - start_time) * 1000
+
+      if error_handled
+        emit_operation_completed(result, duration_ms)
+        return result
+      end
+
+      if error
+        emit_operation_failed(error, duration_ms)
+        raise error
+      end
 
       validate_output_count!(namespaces, result)
       result.each_with_index do |ns, i|
@@ -25,10 +44,48 @@ module Brainpipe
         validate_deletes!(before_states[i], ns)
       end
 
+      emit_operation_completed(result, duration_ms)
       result
     end
 
     private
+
+    def monotonic_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def emit_operation_started(namespaces)
+      debugger&.operation_start(operation_name, namespaces.first&.keys || [])
+      metrics_collector&.operation_started(
+        operation_class: operation.class,
+        namespace: namespaces.first,
+        stage: stage_name,
+        pipe: pipe_name
+      )
+    end
+
+    def emit_operation_completed(result, duration_ms)
+      debugger&.operation_end(operation_name, duration_ms, result.first&.keys || [])
+      metrics_collector&.operation_completed(
+        operation_class: operation.class,
+        namespace: result.first,
+        duration_ms: duration_ms,
+        stage: stage_name,
+        pipe: pipe_name
+      )
+    end
+
+    def emit_operation_failed(error, duration_ms)
+      debugger&.operation_error(operation_name, error, duration_ms)
+      metrics_collector&.operation_failed(
+        operation_class: operation.class,
+        namespace: nil,
+        error: error,
+        duration_ms: duration_ms,
+        stage: stage_name,
+        pipe: pipe_name
+      )
+    end
 
     def execute_with_error_handling(namespaces)
       result = if timeout
@@ -36,9 +93,14 @@ module Brainpipe
       else
         callable.call(namespaces)
       end
-      [result, false]
+      [result, false, nil]
     rescue => error
-      handle_error(error)
+      handled_result, was_handled = handle_error(error)
+      if was_handled
+        [handled_result, true, nil]
+      else
+        [nil, false, error]
+      end
     end
 
     def execute_with_timeout(namespaces)

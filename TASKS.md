@@ -269,23 +269,23 @@
 
 ## Phase 11: Observability
 
-- [ ] Create `lib/brainpipe/observability/debug.rb`
-  - [ ] Debug output formatter
-  - [ ] Operation start/end logging
-  - [ ] Namespace state logging
-- [ ] Create `lib/brainpipe/observability/metrics_collector.rb`
-  - [ ] Interface definition
-  - [ ] `operation_started(operation_class:, namespace:, stage:, pipe:)`
-  - [ ] `operation_completed(operation_class:, namespace:, duration_ms:, stage:, pipe:)`
-  - [ ] `operation_failed(operation_class:, namespace:, error:, duration_ms:, stage:, pipe:)`
-  - [ ] `model_called(model_config:, input:, output:, tokens_in:, tokens_out:, duration_ms:)`
-  - [ ] `pipe_completed(pipe:, input:, output:, duration_ms:, operations_count:)`
-  - [ ] Null implementation (no-op for unimplemented methods)
-- [ ] Integrate metrics collector into Executor, Stage, Pipe
-- [ ] Write specs for observability
-  - [ ] Debug output formatting
-  - [ ] Metrics callback invocation
-  - [ ] Null collector behavior
+- [x] Create `lib/brainpipe/observability/debug.rb`
+  - [x] Debug output formatter
+  - [x] Operation start/end logging
+  - [x] Namespace state logging
+- [x] Create `lib/brainpipe/observability/metrics_collector.rb`
+  - [x] Interface definition
+  - [x] `operation_started(operation_class:, namespace:, stage:, pipe:)`
+  - [x] `operation_completed(operation_class:, namespace:, duration_ms:, stage:, pipe:)`
+  - [x] `operation_failed(operation_class:, namespace:, error:, duration_ms:, stage:, pipe:)`
+  - [x] `model_called(model_config:, input:, output:, tokens_in:, tokens_out:, duration_ms:)`
+  - [x] `pipe_completed(pipe:, input:, output:, duration_ms:, operations_count:)`
+  - [x] Null implementation (no-op for unimplemented methods)
+- [x] Integrate metrics collector into Executor, Stage, Pipe
+- [x] Write specs for observability
+  - [x] Debug output formatting
+  - [x] Metrics callback invocation
+  - [x] Null collector behavior
 
 ---
 
