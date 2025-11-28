@@ -2,31 +2,31 @@
 
 ## Phase 1: Core Foundation
 
-- [ ] Update `lib/brainpipe.rb` with module skeleton
-  - [ ] `Brainpipe.configure(&block)`
-  - [ ] `Brainpipe.load!`
-  - [ ] `Brainpipe.pipe(name)`
-  - [ ] `Brainpipe.model(name)`
-  - [ ] `Brainpipe.reset!`
-- [ ] Create `lib/brainpipe/errors.rb`
-  - [ ] `Brainpipe::Error` base class
-  - [ ] Configuration errors: `ConfigurationError`, `InvalidYAMLError`, `MissingOperationError`, `MissingModelError`, `CapabilityMismatchError`, `IncompatibleStagesError`
-  - [ ] Runtime errors: `ExecutionError`, `TimeoutError`, `EmptyInputError`
-  - [ ] Contract errors: `ContractViolationError`, `PropertyNotFoundError`, `TypeMismatchError`, `UnexpectedPropertyError`, `UnexpectedDeletionError`, `OutputCountMismatchError`
-- [ ] Create `lib/brainpipe/namespace.rb`
-  - [ ] `initialize(properties = {})`
-  - [ ] `[](key)` - property access
-  - [ ] `merge(properties)` - returns new Namespace
-  - [ ] `delete(*keys)` - returns new Namespace
-  - [ ] `to_h` - hash representation
-  - [ ] `keys` - property names
-  - [ ] Ensure immutability (freeze internal hash)
-- [ ] Write specs for `Namespace`
-  - [ ] Immutability tests
-  - [ ] Merge semantics (new instance, original unchanged)
-  - [ ] Delete behavior
-  - [ ] Key access
-- [ ] Write specs for error hierarchy
+- [x] Update `lib/brainpipe.rb` with module skeleton
+  - [x] `Brainpipe.configure(&block)`
+  - [x] `Brainpipe.load!`
+  - [x] `Brainpipe.pipe(name)`
+  - [x] `Brainpipe.model(name)`
+  - [x] `Brainpipe.reset!`
+- [x] Create `lib/brainpipe/errors.rb`
+  - [x] `Brainpipe::Error` base class
+  - [x] Configuration errors: `ConfigurationError`, `InvalidYAMLError`, `MissingOperationError`, `MissingModelError`, `CapabilityMismatchError`, `IncompatibleStagesError`
+  - [x] Runtime errors: `ExecutionError`, `TimeoutError`, `EmptyInputError`
+  - [x] Contract errors: `ContractViolationError`, `PropertyNotFoundError`, `TypeMismatchError`, `UnexpectedPropertyError`, `UnexpectedDeletionError`, `OutputCountMismatchError`
+- [x] Create `lib/brainpipe/namespace.rb`
+  - [x] `initialize(properties = {})`
+  - [x] `[](key)` - property access
+  - [x] `merge(properties)` - returns new Namespace
+  - [x] `delete(*keys)` - returns new Namespace
+  - [x] `to_h` - hash representation
+  - [x] `keys` - property names
+  - [x] Ensure immutability (freeze internal hash)
+- [x] Write specs for `Namespace`
+  - [x] Immutability tests
+  - [x] Merge semantics (new instance, original unchanged)
+  - [x] Delete behavior
+  - [x] Key access
+- [x] Write specs for error hierarchy
 
 ---
 
