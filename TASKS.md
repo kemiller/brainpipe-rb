@@ -120,25 +120,25 @@
 
 ## Phase 5: Model Configuration
 
-- [ ] Create `lib/brainpipe/capabilities.rb`
-  - [ ] Capability constants: `TEXT_TO_TEXT`, `TEXT_TO_IMAGE`, `IMAGE_TO_TEXT`, `TEXT_IMAGE_TO_TEXT`, `TEXT_TO_AUDIO`, `AUDIO_TO_TEXT`, `TEXT_TO_EMBEDDING`
-  - [ ] `VALID_CAPABILITIES` set
-  - [ ] `valid_capability?(cap)` helper
-- [ ] Create `lib/brainpipe/model_config.rb`
-  - [ ] `initialize(name:, provider:, model:, capabilities:, options: {})`
-  - [ ] `has_capability?(capability)`
-  - [ ] `to_baml_client_registry` (stub for now, implement in Phase 13)
-  - [ ] Immutable (freeze after init)
-- [ ] Create `lib/brainpipe/model_registry.rb`
-  - [ ] `register(name, config)`
-  - [ ] `get(name)` - raises `MissingModelError` if not found
-  - [ ] `get?(name)` - returns nil if not found
-  - [ ] `clear!` - for testing
-- [ ] Create `lib/brainpipe/secret_resolver.rb`
-  - [ ] `resolve(value)` - handles `${ENV_VAR}` and `secret://ref`
-  - [ ] Environment variable expansion
-  - [ ] Secret reference detection (resolution delegated to configured resolver)
-- [ ] Write specs for capabilities, model config, registry, secret resolver
+- [x] Create `lib/brainpipe/capabilities.rb`
+  - [x] Capability constants: `TEXT_TO_TEXT`, `TEXT_TO_IMAGE`, `IMAGE_TO_TEXT`, `TEXT_IMAGE_TO_TEXT`, `TEXT_TO_AUDIO`, `AUDIO_TO_TEXT`, `TEXT_TO_EMBEDDING`
+  - [x] `VALID_CAPABILITIES` set
+  - [x] `valid?(cap)` helper
+- [x] Create `lib/brainpipe/model_config.rb`
+  - [x] `initialize(name:, provider:, model:, capabilities:, options: {})`
+  - [x] `has_capability?(capability)`
+  - [x] `to_baml_client_registry` (stub for now, implement in Phase 13)
+  - [x] Immutable (freeze after init)
+- [x] Create `lib/brainpipe/model_registry.rb`
+  - [x] `register(name, config)`
+  - [x] `get(name)` - raises `MissingModelError` if not found
+  - [x] `get?(name)` - returns nil if not found
+  - [x] `clear!` - for testing
+- [x] Create `lib/brainpipe/secret_resolver.rb`
+  - [x] `resolve(value)` - handles `${ENV_VAR}` and `secret://ref`
+  - [x] Environment variable expansion
+  - [x] Secret reference detection (resolution delegated to configured resolver)
+- [x] Write specs for capabilities, model config, registry, secret resolver
 
 ---
 
