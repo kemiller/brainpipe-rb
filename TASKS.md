@@ -194,21 +194,21 @@
 
 ## Phase 8: Configuration DSL
 
-- [ ] Create `lib/brainpipe/configuration.rb`
-  - [ ] `attr_accessor :config_path, :debug, :metrics_collector, :secret_resolver, :max_threads, :thread_pool_timeout`
-  - [ ] `model(name, &block)` - define model config
-  - [ ] `autoload_path(path)` - add Zeitwerk path
-  - [ ] `register_operation(name, klass)` - explicit registration
-  - [ ] `load_config!` - trigger YAML loading
-  - [ ] Model builder DSL (provider, model, capabilities, options, api_key)
-- [ ] Update `Brainpipe.configure` to use Configuration
-- [ ] Write specs for Configuration DSL
-  - [ ] Model definition
-  - [ ] Operation registration
-  - [ ] Autoload paths
-  - [ ] Secret resolver
-  - [ ] Thread pool settings
-  - [ ] `load_config!` timing
+- [x] Create `lib/brainpipe/configuration.rb`
+  - [x] `attr_accessor :config_path, :debug, :metrics_collector, :secret_resolver, :max_threads, :thread_pool_timeout`
+  - [x] `model(name, &block)` - define model config
+  - [x] `autoload_path(path)` - add Zeitwerk path
+  - [x] `register_operation(name, klass)` - explicit registration
+  - [x] `load_config!` - trigger YAML loading
+  - [x] Model builder DSL (provider, model, capabilities, options, api_key)
+- [x] Update `Brainpipe.configure` to use Configuration
+- [x] Write specs for Configuration DSL
+  - [x] Model definition
+  - [x] Operation registration
+  - [x] Autoload paths
+  - [x] Secret resolver
+  - [x] Thread pool settings
+  - [x] `load_config!` timing
 
 ---
 

@@ -11,6 +11,7 @@ require_relative "brainpipe/operation"
 require_relative "brainpipe/executor"
 require_relative "brainpipe/stage"
 require_relative "brainpipe/pipe"
+require_relative "brainpipe/configuration"
 
 module Brainpipe
   class << self
@@ -24,6 +25,7 @@ module Brainpipe
 
     def load!
       raise ConfigurationError, "Brainpipe.configure must be called before Brainpipe.load!" unless @configuration
+      @configuration.load_config!
       @loaded = true
       self
     end
@@ -36,29 +38,19 @@ module Brainpipe
 
     def model(name)
       raise ConfigurationError, "Brainpipe.load! must be called before accessing models" unless @loaded
-      @models ||= {}
-      @models[name.to_sym] or raise MissingModelError, "Model '#{name}' not found"
+      @configuration.model_registry.get(name)
     end
 
     def reset!
+      @configuration&.reset!
       @configuration = nil
       @loaded = false
       @pipes = {}
-      @models = {}
       self
     end
 
     def loaded?
       @loaded == true
-    end
-  end
-
-  class Configuration
-    attr_accessor :config_path, :debug
-
-    def initialize
-      @config_path = nil
-      @debug = false
     end
   end
 end
