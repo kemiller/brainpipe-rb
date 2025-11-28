@@ -3,6 +3,7 @@ require_relative "brainpipe/errors"
 require_relative "brainpipe/namespace"
 require_relative "brainpipe/types"
 require_relative "brainpipe/type_checker"
+require_relative "brainpipe/operation"
 
 module Brainpipe
   class << self

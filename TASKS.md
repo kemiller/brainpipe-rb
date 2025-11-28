@@ -66,33 +66,33 @@
 
 ## Phase 3: Operation Base Class
 
-- [ ] Create `lib/brainpipe/operation.rb`
-  - [ ] Class-level DSL methods:
-    - [ ] `reads(name, type = nil, optional: false)`
-    - [ ] `sets(name, type = nil, optional: false)`
-    - [ ] `deletes(name)`
-    - [ ] `requires_model(capability)`
-    - [ ] `ignore_errors(bool_or_block)`
-    - [ ] `execute(&block)`
-  - [ ] Instance methods:
-    - [ ] `initialize(model: nil, options: {})`
-    - [ ] `create` - returns callable
-    - [ ] `model` - accessor for assigned model
-    - [ ] `declared_reads` - returns `{ name: type }`
-    - [ ] `declared_sets` - returns `{ name: type }`
-    - [ ] `declared_deletes` - returns `[name, ...]`
-    - [ ] `required_model_capability` - returns symbol or nil
-    - [ ] `error_handler` - returns nil, true, or Proc
-  - [ ] `execute` block wrapping (per-namespace iteration)
-  - [ ] Support for `create` override (full array control)
-- [ ] Write specs for `Operation`
-  - [ ] DSL declarations
-  - [ ] Instance-level resolution
-  - [ ] `execute` block form
-  - [ ] `create` override form
-  - [ ] Optional property declarations
-  - [ ] Dynamic property declarations (override instance methods)
-  - [ ] Model requirement declaration
+- [x] Create `lib/brainpipe/operation.rb`
+  - [x] Class-level DSL methods:
+    - [x] `reads(name, type = nil, optional: false)`
+    - [x] `sets(name, type = nil, optional: false)`
+    - [x] `deletes(name)`
+    - [x] `requires_model(capability)`
+    - [x] `ignore_errors(bool_or_block)`
+    - [x] `execute(&block)`
+  - [x] Instance methods:
+    - [x] `initialize(model: nil, options: {})`
+    - [x] `create` - returns callable
+    - [x] `model` - accessor for assigned model
+    - [x] `declared_reads` - returns `{ name: type }`
+    - [x] `declared_sets` - returns `{ name: type }`
+    - [x] `declared_deletes` - returns `[name, ...]`
+    - [x] `required_model_capability` - returns symbol or nil
+    - [x] `error_handler` - returns nil, true, or Proc
+  - [x] `execute` block wrapping (per-namespace iteration)
+  - [x] Support for `create` override (full array control)
+- [x] Write specs for `Operation`
+  - [x] DSL declarations
+  - [x] Instance-level resolution
+  - [x] `execute` block form
+  - [x] `create` override form
+  - [x] Optional property declarations
+  - [x] Dynamic property declarations (override instance methods)
+  - [x] Model requirement declaration
 
 ---
 
