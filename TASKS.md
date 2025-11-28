@@ -32,35 +32,35 @@
 
 ## Phase 2: Type System
 
-- [ ] Create `lib/brainpipe/types.rb`
-  - [ ] `Any` constant
-  - [ ] `Optional[T]` wrapper
-  - [ ] `Enum[*values]` wrapper
-  - [ ] `Union[*types]` wrapper
-  - [ ] `Boolean` constant (Ruby lacks native Boolean)
-- [ ] Create `lib/brainpipe/type_checker.rb`
-  - [ ] `TypeChecker.validate!(value, type, path: "")`
-  - [ ] Basic type checking: `String`, `Integer`, `Float`, `Symbol`
-  - [ ] `Boolean` checking (TrueClass/FalseClass)
-  - [ ] Array type checking: `[String]`
-  - [ ] Hash with typed keys/values: `{ String => Integer }`
-  - [ ] Object structure checking: `{ name: String, age: Integer }`
-  - [ ] Nested structure support
-  - [ ] Optional field handling (`key?:` suffix detection)
-  - [ ] `Any` type (always passes)
-  - [ ] `Optional[T]` handling (nil allowed)
-  - [ ] `Enum[*values]` validation
-  - [ ] `Union[*types]` validation
-  - [ ] Error messages with path: `"records[2].tags[0] expected String, got Integer"`
-- [ ] Write specs for `TypeChecker`
-  - [ ] Basic types
-  - [ ] Arrays of types
-  - [ ] Hashes with key/value types
-  - [ ] Object structures
-  - [ ] Nested structures
-  - [ ] Optional fields
-  - [ ] Type modifiers (Any, Optional, Enum, Union)
-  - [ ] Error message formatting
+- [x] Create `lib/brainpipe/types.rb`
+  - [x] `Any` constant
+  - [x] `Optional[T]` wrapper
+  - [x] `Enum[*values]` wrapper
+  - [x] `Union[*types]` wrapper
+  - [x] `Boolean` constant (Ruby lacks native Boolean)
+- [x] Create `lib/brainpipe/type_checker.rb`
+  - [x] `TypeChecker.validate!(value, type, path: "")`
+  - [x] Basic type checking: `String`, `Integer`, `Float`, `Symbol`
+  - [x] `Boolean` checking (TrueClass/FalseClass)
+  - [x] Array type checking: `[String]`
+  - [x] Hash with typed keys/values: `{ String => Integer }`
+  - [x] Object structure checking: `{ name: String, age: Integer }`
+  - [x] Nested structure support
+  - [x] Optional field handling (`key?:` suffix detection)
+  - [x] `Any` type (always passes)
+  - [x] `Optional[T]` handling (nil allowed)
+  - [x] `Enum[*values]` validation
+  - [x] `Union[*types]` validation
+  - [x] Error messages with path: `"records[2].tags[0] expected String, got Integer"`
+- [x] Write specs for `TypeChecker`
+  - [x] Basic types
+  - [x] Arrays of types
+  - [x] Hashes with key/value types
+  - [x] Object structures
+  - [x] Nested structures
+  - [x] Optional fields
+  - [x] Type modifiers (Any, Optional, Enum, Union)
+  - [x] Error message formatting
 
 ---
 
