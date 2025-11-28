@@ -144,32 +144,32 @@
 
 ## Phase 6: Stage Execution
 
-- [ ] Add `concurrent-ruby` to gemspec
-- [ ] Create `lib/brainpipe/stage.rb`
-  - [ ] `MODES = [:merge, :fan_out, :batch]`
-  - [ ] `MERGE_STRATEGIES = [:last_in, :first_in, :collate, :disjoint]`
-  - [ ] `initialize(name:, mode:, operations:, merge_strategy: :last_in)`
-  - [ ] `call(namespace_array)` - execute stage
-  - [ ] `inputs` - aggregated from operations
-  - [ ] `outputs` - aggregated from operations
-  - [ ] `validate!` - for disjoint strategy
-  - [ ] Mode implementations:
-    - [ ] Merge mode: combine namespaces, run ops, return `[result]`
-    - [ ] Fan-out mode: distribute namespaces, concurrent execution
-    - [ ] Batch mode: pass entire array to operations
-  - [ ] Parallel operation execution within stage
-  - [ ] Merge strategy implementations:
-    - [ ] `last_in`: last to complete wins
-    - [ ] `first_in`: first to complete wins
-    - [ ] `collate`: conflicts become arrays
-    - [ ] `disjoint`: validate no overlap at config time
-  - [ ] Empty input check (raise `EmptyInputError`)
-- [ ] Write specs for `Stage`
-  - [ ] Each mode
-  - [ ] Each merge strategy
-  - [ ] Parallel execution
-  - [ ] Empty input error
-  - [ ] Input/output aggregation
+- [x] Add `concurrent-ruby` to gemspec
+- [x] Create `lib/brainpipe/stage.rb`
+  - [x] `MODES = [:merge, :fan_out, :batch]`
+  - [x] `MERGE_STRATEGIES = [:last_in, :first_in, :collate, :disjoint]`
+  - [x] `initialize(name:, mode:, operations:, merge_strategy: :last_in)`
+  - [x] `call(namespace_array)` - execute stage
+  - [x] `inputs` - aggregated from operations
+  - [x] `outputs` - aggregated from operations
+  - [x] `validate!` - for disjoint strategy
+  - [x] Mode implementations:
+    - [x] Merge mode: combine namespaces, run ops, return `[result]`
+    - [x] Fan-out mode: distribute namespaces, concurrent execution
+    - [x] Batch mode: pass entire array to operations
+  - [x] Parallel operation execution within stage
+  - [x] Merge strategy implementations:
+    - [x] `last_in`: last to complete wins
+    - [x] `first_in`: first to complete wins
+    - [x] `collate`: conflicts become arrays
+    - [x] `disjoint`: validate no overlap at config time
+  - [x] Empty input check (raise `EmptyInputError`)
+- [x] Write specs for `Stage`
+  - [x] Each mode
+  - [x] Each merge strategy
+  - [x] Parallel execution
+  - [x] Empty input error
+  - [x] Input/output aggregation
 
 ---
 
