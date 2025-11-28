@@ -41,11 +41,14 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-2.2: An operation MUST declare which properties it reads from the namespace
 - FR-2.3: An operation MUST declare which properties it sets in the namespace
 - FR-2.4: An operation MUST declare which properties it deletes from the namespace
-- FR-2.5: An operation MUST define its execution logic
-- FR-2.6: An operation MAY declare that it ignores errors (does not halt the pipe)
-- FR-2.7: Operations are factories: configured at config load time, they produce executors on demand
-- FR-2.8: Each pipe execution MUST receive fresh executor instances from operations
-- FR-2.9: In fan-out mode, each parallel branch MUST receive its own executor instance
+- FR-2.5: Property declarations MUST be resolvable at the instance level (after initialization with options)
+- FR-2.6: An operation MUST define its execution logic
+- FR-2.7: An operation MAY declare error handling via boolean or conditional function (does not halt the pipe if ignored)
+- FR-2.8: Operations are factories: configured at config load time, they produce executors on demand
+- FR-2.9: Each pipe execution MUST receive fresh executor instances from operations
+- FR-2.10: In fan-out mode, each parallel branch MUST receive its own executor instance
+- FR-2.11: Executors MUST always receive an array of namespaces (even if single element)
+- FR-2.12: Executors MUST always return an array of namespaces (same count as input)
 
 ### FR-3: Property Namespace
 
@@ -78,14 +81,16 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-4.4.1: A stage in merge mode MUST output a single property set
 - FR-4.4.2: A stage in fan-out mode MUST output an array of property sets (one per input)
 - FR-4.4.3: A stage in batch mode MUST output based on operation's declared output type
+- FR-4.4.4: The last stage in a pipe MUST use merge mode to satisfy FR-1.5 (single output)
 
-#### FR-4.5: Collectors
-- FR-4.5.1: A stage MAY include a collector that reduces an array of property sets to a single set
-- FR-4.5.2: The last stage in a pipe MUST produce a single property set
-- FR-4.5.3: A pipe with unresolved fan-out (no collector before final output) MUST raise an error at config load time
+#### FR-4.5: Parallel Execution
+- FR-4.5.1: All operations within a stage MUST execute in parallel
+- FR-4.5.2: Sequential operation execution MUST use separate stages
+- FR-4.5.3: A stage MUST define a merge strategy for combining parallel operation outputs
+- FR-4.5.4: Supported merge strategies: last_in (default), first_in, collate, disjoint
 
 #### FR-4.6: Empty Input
-- FR-4.6.1: A stage receiving an empty array MUST produce an empty array (no operations execute)
+- FR-4.6.1: A stage receiving an empty array MUST raise an error (empty input is invalid)
 
 ### FR-5: Configuration
 
@@ -114,7 +119,6 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-8.5: Model configs MUST be convertible to BAML ClientRegistry format
 - FR-8.6: Model configs MUST be definable in YAML configuration files
 - FR-8.7: Operations MUST be able to reference model configs by name
-- FR-8.8: A default/primary model config SHOULD be settable at the pipe level
 - FR-8.9: Model configs MUST support retry configuration (count, backoff) via BAML client options
 - FR-8.10: API keys and secrets MUST NOT be stored directly in YAML configuration
 - FR-8.11: Model configs MUST support environment variable references (e.g., ${ENV_VAR})
