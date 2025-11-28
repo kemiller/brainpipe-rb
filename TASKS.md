@@ -175,20 +175,20 @@
 
 ## Phase 7: Pipe Assembly & Validation
 
-- [ ] Create `lib/brainpipe/pipe.rb`
-  - [ ] `initialize(name:, stages:, timeout: nil)`
-  - [ ] `call(properties)` - execute pipeline
-  - [ ] `inputs` - from first stage
-  - [ ] `outputs` - from last stage
-  - [ ] `validate!` - stage compatibility
-  - [ ] Validate last stage is merge mode
-  - [ ] Validate stage property compatibility (outputs feed inputs)
-- [ ] Write specs for `Pipe`
-  - [ ] Construction validation
-  - [ ] Input/output advertising
-  - [ ] Last stage mode validation
-  - [ ] Stage compatibility validation
-  - [ ] Execution flow
+- [x] Create `lib/brainpipe/pipe.rb`
+  - [x] `initialize(name:, stages:, timeout: nil)`
+  - [x] `call(properties)` - execute pipeline
+  - [x] `inputs` - from first stage
+  - [x] `outputs` - from last stage
+  - [x] `validate!` - stage compatibility
+  - [x] Validate last stage is merge mode
+  - [x] Validate stage property compatibility (outputs feed inputs)
+- [x] Write specs for `Pipe`
+  - [x] Construction validation
+  - [x] Input/output advertising
+  - [x] Last stage mode validation
+  - [x] Stage compatibility validation
+  - [x] Execution flow
 
 ---
 

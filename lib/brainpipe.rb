@@ -10,6 +10,7 @@ require_relative "brainpipe/model_registry"
 require_relative "brainpipe/operation"
 require_relative "brainpipe/executor"
 require_relative "brainpipe/stage"
+require_relative "brainpipe/pipe"
 
 module Brainpipe
   class << self
