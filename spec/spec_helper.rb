@@ -1,4 +1,6 @@
 require "brainpipe"
+require "tmpdir"
+require "fileutils"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

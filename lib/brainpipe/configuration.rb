@@ -51,8 +51,8 @@ module Brainpipe
     end
 
     def load_config!
-      # This is a stub - actual YAML loading will be implemented in Phase 9
-      # For now, just return self to allow chaining
+      loader = Loader.new(self)
+      loader.load_config_file
       self
     end
 

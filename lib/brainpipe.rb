@@ -12,6 +12,7 @@ require_relative "brainpipe/executor"
 require_relative "brainpipe/stage"
 require_relative "brainpipe/pipe"
 require_relative "brainpipe/configuration"
+require_relative "brainpipe/loader"
 
 module Brainpipe
   class << self
@@ -25,7 +26,9 @@ module Brainpipe
 
     def load!
       raise ConfigurationError, "Brainpipe.configure must be called before Brainpipe.load!" unless @configuration
-      @configuration.load_config!
+      loader = Loader.new(@configuration)
+      loader.load!
+      @pipes = loader.load_pipes
       @loaded = true
       self
     end

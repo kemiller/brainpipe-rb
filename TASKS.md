@@ -214,29 +214,29 @@
 
 ## Phase 9: YAML Loading & Autoloading
 
-- [ ] Add `zeitwerk` to gemspec
-- [ ] Create `lib/brainpipe/loader.rb`
-  - [ ] `load_config_file(path)` - parse config.yml
-  - [ ] `load_pipe_file(path)` - parse pipe YAML
-  - [ ] `setup_zeitwerk(paths)` - configure autoloader
-  - [ ] `resolve_operation(type_string)` - find operation class
-  - [ ] `build_pipe(yaml_hash)` - construct Pipe from YAML
-  - [ ] `build_stage(yaml_hash)` - construct Stage from YAML
-  - [ ] Capability validation (operation requires model with capability)
-  - [ ] Secret resolution integration
-- [ ] Update `Brainpipe.load!` to use Loader
-- [ ] Create default Zeitwerk paths:
-  - [ ] `app/operations/` (Rails)
-  - [ ] `lib/operations/`
-- [ ] Write specs for Loader
-  - [ ] Valid config.yml parsing
-  - [ ] Invalid YAML error handling
-  - [ ] Pipe YAML parsing
-  - [ ] Operation resolution (built-in, user-defined, registered)
-  - [ ] Model reference resolution
-  - [ ] Capability mismatch errors
-  - [ ] Missing operation errors
-  - [ ] Missing model errors
+- [x] Add `zeitwerk` to gemspec
+- [x] Create `lib/brainpipe/loader.rb`
+  - [x] `load_config_file(path)` - parse config.yml
+  - [x] `load_pipe_file(path)` - parse pipe YAML
+  - [x] `setup_zeitwerk(paths)` - configure autoloader
+  - [x] `resolve_operation(type_string)` - find operation class
+  - [x] `build_pipe(yaml_hash)` - construct Pipe from YAML
+  - [x] `build_stage(yaml_hash)` - construct Stage from YAML
+  - [x] Capability validation (operation requires model with capability)
+  - [x] Secret resolution integration
+- [x] Update `Brainpipe.load!` to use Loader
+- [x] Create default Zeitwerk paths:
+  - [x] `app/operations/` (Rails)
+  - [x] `lib/operations/`
+- [x] Write specs for Loader
+  - [x] Valid config.yml parsing
+  - [x] Invalid YAML error handling
+  - [x] Pipe YAML parsing
+  - [x] Operation resolution (built-in, user-defined, registered)
+  - [x] Model reference resolution
+  - [x] Capability mismatch errors
+  - [x] Missing operation errors
+  - [x] Missing model errors
 
 ---
 
