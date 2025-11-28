@@ -276,6 +276,29 @@ RSpec.describe Brainpipe::Loader do
         loader.build_stage(yaml_hash)
       }.to raise_error(Brainpipe::InvalidYAMLError, /missing 'name'/)
     end
+
+    it "accepts timeout" do
+      yaml_hash = {
+        "name" => "my_stage",
+        "mode" => "merge",
+        "timeout" => 30,
+        "operations" => [{ "type" => "test_op" }]
+      }
+
+      stage = loader.build_stage(yaml_hash)
+      expect(stage.timeout).to eq(30)
+    end
+
+    it "defaults timeout to nil" do
+      yaml_hash = {
+        "name" => "my_stage",
+        "mode" => "merge",
+        "operations" => [{ "type" => "test_op" }]
+      }
+
+      stage = loader.build_stage(yaml_hash)
+      expect(stage.timeout).to be_nil
+    end
   end
 
   describe "#resolve_operation" do
@@ -525,8 +548,32 @@ RSpec.describe Brainpipe::Loader do
       }
 
       operation = loader.send(:build_operation, yaml_hash)
-      expect(operation.options["format"]).to eq("json")
-      expect(operation.options["limit"]).to eq(100)
+      expect(operation.options[:format]).to eq("json")
+      expect(operation.options[:limit]).to eq(100)
+    end
+
+    it "passes timeout to operation via options" do
+      yaml_hash = {
+        "type" => "test_op",
+        "timeout" => 15
+      }
+
+      operation = loader.send(:build_operation, yaml_hash)
+      expect(operation.timeout).to eq(15)
+    end
+
+    it "merges timeout with other options" do
+      yaml_hash = {
+        "type" => "test_op",
+        "timeout" => 15,
+        "options" => {
+          "format" => "json"
+        }
+      }
+
+      operation = loader.send(:build_operation, yaml_hash)
+      expect(operation.timeout).to eq(15)
+      expect(operation.options[:format]).to eq("json")
     end
   end
 end

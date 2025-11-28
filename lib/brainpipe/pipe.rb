@@ -1,3 +1,5 @@
+require "timeout"
+
 module Brainpipe
   class Pipe
     attr_reader :name, :stages, :timeout
@@ -19,15 +21,43 @@ module Brainpipe
     def call(properties)
       raise EmptyInputError, "Pipe '#{name}' received empty properties" if properties.nil?
 
+      if timeout
+        execute_with_timeout(properties)
+      else
+        execute_pipeline(properties)
+      end
+    end
+
+    private
+
+    def execute_with_timeout(properties)
+      ::Timeout.timeout(timeout) { execute_pipeline(properties) }
+    rescue ::Timeout::Error, ::Timeout::ExitException => e
+      raise TimeoutError, "Pipe '#{name}' timed out after #{timeout} seconds"
+    end
+
+    def execute_pipeline(properties)
       initial_namespace = properties.is_a?(Namespace) ? properties : Namespace.new(properties)
       namespaces = [initial_namespace]
+      remaining_timeout = timeout
 
       stages.each do |stage|
-        namespaces = stage.call(namespaces)
+        stage_timeout = compute_stage_timeout(stage, remaining_timeout)
+        start_time = Time.now
+        namespaces = stage.call(namespaces, timeout: stage_timeout)
+        remaining_timeout -= (Time.now - start_time) if remaining_timeout
       end
 
       namespaces.first
     end
+
+    def compute_stage_timeout(stage, remaining)
+      return nil unless remaining
+      return remaining unless stage.respond_to?(:timeout) && stage.timeout
+      [stage.timeout, remaining].min
+    end
+
+    public
 
     attr_reader :inputs, :outputs
 

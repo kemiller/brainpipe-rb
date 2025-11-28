@@ -139,6 +139,40 @@ RSpec.describe Brainpipe::Operation do
       end
     end
 
+    describe ".timeout" do
+      it "declares a timeout value" do
+        op_class = Class.new(described_class) do
+          timeout 30
+        end
+
+        instance = op_class.new
+        expect(instance.timeout).to eq(30)
+      end
+
+      it "defaults to nil when not specified" do
+        op_class = Class.new(described_class)
+
+        instance = op_class.new
+        expect(instance.timeout).to be_nil
+      end
+
+      it "can be overridden via options" do
+        op_class = Class.new(described_class)
+
+        instance = op_class.new(options: { timeout: 15 })
+        expect(instance.timeout).to eq(15)
+      end
+
+      it "prefers class-level timeout over options" do
+        op_class = Class.new(described_class) do
+          timeout 30
+        end
+
+        instance = op_class.new(options: { timeout: 15 })
+        expect(instance.timeout).to eq(30)
+      end
+    end
+
     describe ".execute" do
       it "stores a block for per-namespace execution" do
         op_class = Class.new(described_class) do

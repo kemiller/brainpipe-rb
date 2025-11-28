@@ -398,4 +398,60 @@ RSpec.describe Brainpipe::Executor do
       expect(result[0][:output]).to eq("HELLO")
     end
   end
+
+  describe "timeout behavior" do
+    it "stores timeout from initialization" do
+      callable = ->(ns) { ns }
+      operation = create_operation
+      executor = described_class.new(callable, operation: operation, timeout: 5)
+
+      expect(executor.timeout).to eq(5)
+    end
+
+    it "defaults timeout to nil" do
+      callable = ->(ns) { ns }
+      operation = create_operation
+      executor = described_class.new(callable, operation: operation)
+
+      expect(executor.timeout).to be_nil
+    end
+
+    it "raises TimeoutError when operation times out" do
+      callable = ->(ns) do
+        sleep(0.5)
+        ns
+      end
+      operation = create_operation
+      executor = described_class.new(callable, operation: operation, timeout: 0.1)
+
+      expect { executor.call(namespaces) }
+        .to raise_error(Brainpipe::TimeoutError, /timed out after 0.1 seconds/)
+    end
+
+    it "completes when execution is within timeout" do
+      callable = ->(ns) { ns.map { |n| n.merge(result: "done") } }
+      operation = create_operation
+      executor = described_class.new(callable, operation: operation, timeout: 5)
+
+      result = executor.call(namespaces)
+
+      expect(result[0][:result]).to eq("done")
+    end
+
+    it "includes operation name in timeout error" do
+      op_class = Class.new(Brainpipe::Operation) do
+      end
+      stub_const("SlowOperation", op_class)
+
+      callable = ->(ns) do
+        sleep(0.5)
+        ns
+      end
+      operation = SlowOperation.new
+      executor = described_class.new(callable, operation: operation, timeout: 0.1)
+
+      expect { executor.call(namespaces) }
+        .to raise_error(Brainpipe::TimeoutError, /SlowOperation/)
+    end
+  end
 end

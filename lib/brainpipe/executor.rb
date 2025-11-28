@@ -1,11 +1,14 @@
+require "timeout"
+
 module Brainpipe
   class Executor
-    attr_reader :callable, :operation, :debug
+    attr_reader :callable, :operation, :debug, :timeout
 
-    def initialize(callable, operation:, debug: false)
+    def initialize(callable, operation:, debug: false, timeout: nil)
       @callable = callable
       @operation = operation
       @debug = debug
+      @timeout = timeout
     end
 
     def call(namespaces)
@@ -28,9 +31,20 @@ module Brainpipe
     private
 
     def execute_with_error_handling(namespaces)
-      [callable.call(namespaces), false]
+      result = if timeout
+        execute_with_timeout(namespaces)
+      else
+        callable.call(namespaces)
+      end
+      [result, false]
     rescue => error
       handle_error(error)
+    end
+
+    def execute_with_timeout(namespaces)
+      ::Timeout.timeout(timeout) { callable.call(namespaces) }
+    rescue ::Timeout::Error, ::Timeout::ExitException
+      raise TimeoutError, "Operation #{operation_name} timed out after #{timeout} seconds"
     end
 
     def handle_error(error)

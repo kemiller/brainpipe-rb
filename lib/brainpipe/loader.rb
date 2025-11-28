@@ -98,6 +98,7 @@ module Brainpipe
 
       mode = yaml_hash["mode"] || yaml_hash[:mode] || "merge"
       merge_strategy = yaml_hash["merge_strategy"] || yaml_hash[:merge_strategy] || "last_in"
+      timeout = yaml_hash["timeout"] || yaml_hash[:timeout]
       ops_yaml = yaml_hash["operations"] || yaml_hash[:operations] || []
 
       operations = ops_yaml.map { |op_yaml| build_operation(op_yaml) }
@@ -107,6 +108,7 @@ module Brainpipe
         mode: mode.to_sym,
         operations: operations,
         merge_strategy: merge_strategy.to_sym,
+        timeout: timeout,
         debug: configuration.debug
       )
     end
@@ -201,6 +203,10 @@ module Brainpipe
 
       model_name = yaml_hash["model"] || yaml_hash[:model]
       options = yaml_hash["options"] || yaml_hash[:options] || {}
+      timeout = yaml_hash["timeout"] || yaml_hash[:timeout]
+
+      options = options.transform_keys(&:to_sym)
+      options[:timeout] = timeout if timeout
 
       model = resolve_model(model_name, klass)
       validate_model_capability!(klass, model, model_name)

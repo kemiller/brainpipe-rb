@@ -1,17 +1,19 @@
 require "concurrent"
+require "timeout"
 
 module Brainpipe
   class Stage
     MODES = [:merge, :fan_out, :batch].freeze
     MERGE_STRATEGIES = [:last_in, :first_in, :collate, :disjoint].freeze
 
-    attr_reader :name, :mode, :operations, :merge_strategy
+    attr_reader :name, :mode, :operations, :merge_strategy, :timeout
 
-    def initialize(name:, mode:, operations:, merge_strategy: :last_in, debug: false)
+    def initialize(name:, mode:, operations:, merge_strategy: :last_in, timeout: nil, debug: false)
       @name = name.to_sym
       @mode = validate_mode!(mode)
       @operations = operations.freeze
       @merge_strategy = validate_merge_strategy!(merge_strategy)
+      @timeout = timeout
       @debug = debug
 
       validate_disjoint! if @merge_strategy == :disjoint
@@ -22,16 +24,15 @@ module Brainpipe
       freeze
     end
 
-    def call(namespaces)
+    def call(namespaces, timeout: nil)
       raise EmptyInputError, "Stage '#{name}' received empty input" if namespaces.empty?
 
-      case mode
-      when :merge
-        execute_merge(namespaces)
-      when :fan_out
-        execute_fan_out(namespaces)
-      when :batch
-        execute_batch(namespaces)
+      effective_timeout = compute_effective_timeout(timeout)
+
+      if effective_timeout
+        execute_with_timeout(namespaces, effective_timeout)
+      else
+        execute_stage(namespaces, nil)
       end
     end
 
@@ -43,6 +44,29 @@ module Brainpipe
     end
 
     private
+
+    def compute_effective_timeout(passed_timeout)
+      return @timeout unless passed_timeout
+      return passed_timeout unless @timeout
+      [passed_timeout, @timeout].min
+    end
+
+    def execute_with_timeout(namespaces, timeout_value)
+      ::Timeout.timeout(timeout_value) { execute_stage(namespaces, timeout_value) }
+    rescue ::Timeout::Error, ::Timeout::ExitException
+      raise TimeoutError, "Stage '#{name}' timed out after #{timeout_value} seconds"
+    end
+
+    def execute_stage(namespaces, timeout_value)
+      case mode
+      when :merge
+        execute_merge(namespaces, timeout_value)
+      when :fan_out
+        execute_fan_out(namespaces, timeout_value)
+      when :batch
+        execute_batch(namespaces, timeout_value)
+      end
+    end
 
     def validate_mode!(mode)
       mode = mode.to_sym
@@ -76,15 +100,15 @@ module Brainpipe
       end
     end
 
-    def execute_merge(namespaces)
+    def execute_merge(namespaces, timeout_value)
       merged = merge_namespaces(namespaces)
-      results = execute_operations_parallel([merged])
+      results = execute_operations_parallel([merged], timeout_value)
       merge_operation_results(results)
     end
 
-    def execute_fan_out(namespaces)
+    def execute_fan_out(namespaces, timeout_value)
       results_per_namespace = namespaces.map.with_index do |ns, idx|
-        [idx, execute_operations_parallel([ns])]
+        [idx, execute_operations_parallel([ns], timeout_value)]
       end.to_h
 
       namespaces.each_index.map do |idx|
@@ -93,12 +117,12 @@ module Brainpipe
       end
     end
 
-    def execute_batch(namespaces)
-      results = execute_operations_parallel(namespaces)
+    def execute_batch(namespaces, timeout_value)
+      results = execute_operations_parallel(namespaces, timeout_value)
       merge_batch_results(results, namespaces.length)
     end
 
-    def execute_operations_parallel(namespaces)
+    def execute_operations_parallel(namespaces, timeout_value)
       return [] if operations.empty?
 
       pool = Concurrent::FixedThreadPool.new([operations.length, 10].min)
@@ -106,9 +130,10 @@ module Brainpipe
       errors = Concurrent::Array.new
 
       operations.each do |operation|
+        op_timeout = compute_operation_timeout(operation, timeout_value)
         futures << Concurrent::Future.execute(executor: pool) do
           callable = operation.create
-          executor = Executor.new(callable, operation: operation, debug: @debug)
+          executor = Executor.new(callable, operation: operation, debug: @debug, timeout: op_timeout)
           { operation: operation, result: executor.call(namespaces.map(&:dup)) }
         rescue => e
           errors << e
@@ -125,6 +150,13 @@ module Brainpipe
       end
 
       results
+    end
+
+    def compute_operation_timeout(operation, stage_timeout)
+      op_timeout = operation.respond_to?(:timeout) ? operation.timeout : nil
+      return op_timeout unless stage_timeout
+      return stage_timeout unless op_timeout
+      [op_timeout, stage_timeout].min
     end
 
     def merge_namespaces(namespaces)

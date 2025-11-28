@@ -381,4 +381,44 @@ RSpec.describe Brainpipe::Pipe do
       expect { pipe.call({}) }.to raise_error(RuntimeError, "boom")
     end
   end
+
+  describe "timeout behavior" do
+    it "stores pipe timeout" do
+      op = create_operation { |ns| ns }
+      stage = create_stage(name: "test", mode: :merge, operations: [op])
+      pipe = described_class.new(name: "test", stages: [stage], timeout: 30)
+
+      expect(pipe.timeout).to eq(30)
+    end
+
+    it "defaults timeout to nil" do
+      op = create_operation { |ns| ns }
+      stage = create_stage(name: "test", mode: :merge, operations: [op])
+      pipe = described_class.new(name: "test", stages: [stage])
+
+      expect(pipe.timeout).to be_nil
+    end
+
+    it "completes when execution is within timeout" do
+      fast_op = create_operation(sets: { result: {} }) do |ns|
+        ns.merge(result: "done")
+      end
+      stage = create_stage(name: "fast", mode: :merge, operations: [fast_op])
+      pipe = described_class.new(name: "test", stages: [stage], timeout: 5)
+
+      result = pipe.call({})
+
+      expect(result[:result]).to eq("done")
+    end
+
+    it "passes timeout configuration to stages" do
+      op = create_operation(sets: { result: {} }) { |ns| ns.merge(result: "done") }
+      stage = Brainpipe::Stage.new(name: "test", mode: :merge, operations: [op], timeout: 10)
+      pipe = described_class.new(name: "test", stages: [stage], timeout: 5)
+
+      result = pipe.call({})
+
+      expect(result[:result]).to eq("done")
+    end
+  end
 end

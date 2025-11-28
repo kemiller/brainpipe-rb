@@ -242,28 +242,28 @@
 
 ## Phase 10: Timeout & Error Handling
 
-- [ ] Add timeout support to `Pipe`
-  - [ ] Wrap `call` with `Timeout.timeout`
-  - [ ] Raise `TimeoutError`
-- [ ] Add timeout support to `Stage`
-  - [ ] Wrap execution with timeout
-  - [ ] Cancel in-flight operations on timeout
-- [ ] Add timeout support to `Executor`
-  - [ ] Per-operation timeout
-- [ ] Implement parallel error collection in `Stage`
-  - [ ] Let all operations complete
-  - [ ] Collect success and failure results
-  - [ ] Raise first non-ignored error after completion
-- [ ] Update YAML loading to parse `timeout` field
-- [ ] Write specs for timeout behavior
-  - [ ] Pipe timeout
-  - [ ] Stage timeout
-  - [ ] Operation timeout
-  - [ ] Timeout clamping (inner by outer)
-- [ ] Write specs for parallel error handling
-  - [ ] All ops complete before error raised
-  - [ ] Ignored errors don't halt
-  - [ ] Error collection for debugging
+- [x] Add timeout support to `Pipe`
+  - [x] Wrap `call` with `Timeout.timeout`
+  - [x] Raise `TimeoutError`
+- [x] Add timeout support to `Stage`
+  - [x] Wrap execution with timeout
+  - [x] Cancel in-flight operations on timeout
+- [x] Add timeout support to `Executor`
+  - [x] Per-operation timeout
+- [x] Implement parallel error collection in `Stage`
+  - [x] Let all operations complete
+  - [x] Collect success and failure results
+  - [x] Raise first non-ignored error after completion
+- [x] Update YAML loading to parse `timeout` field
+- [x] Write specs for timeout behavior
+  - [x] Pipe timeout
+  - [x] Stage timeout
+  - [x] Operation timeout
+  - [x] Timeout clamping (inner by outer)
+- [x] Write specs for parallel error handling
+  - [x] All ops complete before error raised
+  - [x] Ignored errors don't halt
+  - [x] Error collection for debugging
 
 ---
 

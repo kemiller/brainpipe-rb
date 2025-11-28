@@ -8,6 +8,7 @@ module Brainpipe
         subclass.instance_variable_set(:@_required_model_capability, nil)
         subclass.instance_variable_set(:@_error_handler, nil)
         subclass.instance_variable_set(:@_execute_block, nil)
+        subclass.instance_variable_set(:@_timeout, nil)
       end
 
       def reads(name, type = nil, optional: false)
@@ -33,6 +34,10 @@ module Brainpipe
         @_error_handler = block_given? ? block : value
       end
 
+      def timeout(value)
+        @_timeout = value
+      end
+
       def execute(&block)
         @_execute_block = block
       end
@@ -55,6 +60,10 @@ module Brainpipe
 
       def _error_handler
         @_error_handler
+      end
+
+      def _timeout
+        @_timeout
       end
 
       def _execute_block
@@ -88,6 +97,10 @@ module Brainpipe
 
     def error_handler
       self.class._error_handler
+    end
+
+    def timeout
+      self.class._timeout || options[:timeout]
     end
 
     def create

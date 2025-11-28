@@ -519,4 +519,61 @@ RSpec.describe Brainpipe::Stage do
       expect(result[1][:upper]).to eq("WORLD")
     end
   end
+
+  describe "timeout behavior" do
+    it "stores timeout from initialization" do
+      stage = described_class.new(name: "test", mode: :merge, operations: [], timeout: 5)
+      expect(stage.timeout).to eq(5)
+    end
+
+    it "defaults timeout to nil" do
+      stage = described_class.new(name: "test", mode: :merge, operations: [])
+      expect(stage.timeout).to be_nil
+    end
+
+    it "raises TimeoutError when stage times out" do
+      slow_op = create_operation(sets: { result: {} }) do |ns|
+        sleep(0.5)
+        ns.merge(result: "done")
+      end
+
+      stage = described_class.new(name: "slow", mode: :merge, operations: [slow_op], timeout: 0.1)
+
+      expect { stage.call([Brainpipe::Namespace.new]) }
+        .to raise_error(Brainpipe::TimeoutError, /Stage 'slow' timed out/)
+    end
+
+    it "completes when execution is within timeout" do
+      fast_op = create_operation(sets: { result: {} }) { |ns| ns.merge(result: "done") }
+      stage = described_class.new(name: "fast", mode: :merge, operations: [fast_op], timeout: 5)
+
+      result = stage.call([Brainpipe::Namespace.new])
+
+      expect(result[0][:result]).to eq("done")
+    end
+
+    it "uses passed timeout when smaller than stage timeout" do
+      slow_op = create_operation(sets: { result: {} }) do |ns|
+        sleep(0.5)
+        ns.merge(result: "done")
+      end
+
+      stage = described_class.new(name: "slow", mode: :merge, operations: [slow_op], timeout: 10)
+
+      expect { stage.call([Brainpipe::Namespace.new], timeout: 0.1) }
+        .to raise_error(Brainpipe::TimeoutError)
+    end
+
+    it "uses stage timeout when smaller than passed timeout" do
+      slow_op = create_operation(sets: { result: {} }) do |ns|
+        sleep(0.5)
+        ns.merge(result: "done")
+      end
+
+      stage = described_class.new(name: "slow", mode: :merge, operations: [slow_op], timeout: 0.1)
+
+      expect { stage.call([Brainpipe::Namespace.new], timeout: 10) }
+        .to raise_error(Brainpipe::TimeoutError)
+    end
+  end
 end
