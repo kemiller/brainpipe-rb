@@ -98,23 +98,23 @@
 
 ## Phase 4: Executor & Contract Validation
 
-- [ ] Create `lib/brainpipe/executor.rb`
-  - [ ] `initialize(callable, operation:, debug: false)`
-  - [ ] `call(namespaces)` - array in, array out
-  - [ ] `validate_reads!(namespace)` - check declared reads exist
-  - [ ] `validate_sets!(before, after)` - check declared sets appear
-  - [ ] `validate_deletes!(before, after)` - check declared deletes removed
-  - [ ] Optional property handling (skip validation if optional)
-  - [ ] Error handler invocation
-  - [ ] Output count validation (same as input)
-- [ ] Write specs for `Executor`
-  - [ ] Read validation (present, missing, optional)
-  - [ ] Set validation (present, missing, optional)
-  - [ ] Delete validation (removed, still present, optional)
-  - [ ] Error handler: boolean `true` (ignore all)
-  - [ ] Error handler: proc (conditional ignore)
-  - [ ] Output count mismatch error
-  - [ ] Contract violation error messages
+- [x] Create `lib/brainpipe/executor.rb`
+  - [x] `initialize(callable, operation:, debug: false)`
+  - [x] `call(namespaces)` - array in, array out
+  - [x] `validate_reads!(namespace)` - check declared reads exist
+  - [x] `validate_sets!(before, after)` - check declared sets appear
+  - [x] `validate_deletes!(before, after)` - check declared deletes removed
+  - [x] Optional property handling (skip validation if optional)
+  - [x] Error handler invocation
+  - [x] Output count validation (same as input)
+- [x] Write specs for `Executor`
+  - [x] Read validation (present, missing, optional)
+  - [x] Set validation (present, missing, optional)
+  - [x] Delete validation (removed, still present, optional)
+  - [x] Error handler: boolean `true` (ignore all)
+  - [x] Error handler: proc (conditional ignore)
+  - [x] Output count mismatch error
+  - [x] Contract violation error messages
 
 ---
 
