@@ -155,8 +155,45 @@ RSpec.describe Brainpipe::ModelConfig do
       )
     end
 
-    it "raises NotImplementedError (placeholder for Phase 13)" do
-      expect { config.to_baml_client_registry }.to raise_error(NotImplementedError)
+    it "returns nil when BAML is not available" do
+      allow(Brainpipe::BamlAdapter).to receive(:available?).and_return(false)
+      expect(config.to_baml_client_registry).to be_nil
+    end
+  end
+
+  describe "#build_baml_client" do
+    it "builds client options with model and api_key" do
+      config = described_class.new(
+        name: :default,
+        provider: :openai,
+        model: "gpt-4o",
+        capabilities: [:text_to_text],
+        options: { api_key: "test-key" }
+      )
+
+      client = config.build_baml_client
+      expect(client["model"]).to eq("gpt-4o")
+      expect(client["api_key"]).to eq("test-key")
+    end
+
+    it "includes optional settings when provided" do
+      config = described_class.new(
+        name: :default,
+        provider: :openai,
+        model: "gpt-4o",
+        capabilities: [:text_to_text],
+        options: {
+          api_key: "test-key",
+          base_url: "https://api.example.com",
+          temperature: 0.7,
+          max_tokens: 1000
+        }
+      )
+
+      client = config.build_baml_client
+      expect(client["base_url"]).to eq("https://api.example.com")
+      expect(client["temperature"]).to eq(0.7)
+      expect(client["max_tokens"]).to eq(1000)
     end
   end
 end

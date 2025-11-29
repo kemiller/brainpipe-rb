@@ -232,6 +232,120 @@ RSpec.describe "Built-in Operations Integration" do
     end
   end
 
+  describe "Baml in a pipe" do
+    let(:mock_baml_function) do
+      mock = instance_double(Brainpipe::BamlFunction, name: :summarize)
+      allow(mock).to receive(:input_schema).and_return({
+        text: { type: String, optional: false }
+      })
+      allow(mock).to receive(:output_schema).and_return({
+        summary: { type: String, optional: false },
+        word_count: { type: Integer, optional: false }
+      })
+      allow(mock).to receive(:call) do |input, **_|
+        { summary: "Summary: #{input[:text]}", word_count: input[:text].split.size }
+      end
+      mock
+    end
+
+    before do
+      allow(Brainpipe::BamlAdapter).to receive(:require_available!)
+      allow(Brainpipe::BamlAdapter).to receive(:function).with(:summarize).and_return(mock_baml_function)
+    end
+
+    it "executes BAML function in pipeline" do
+      baml_op = Brainpipe::Operations::Baml.new(
+        options: { function: :summarize }
+      )
+
+      stage = Brainpipe::Stage.new(
+        name: :summarize,
+        mode: :merge,
+        operations: [baml_op]
+      )
+
+      pipe = Brainpipe::Pipe.new(
+        name: :baml_pipe,
+        stages: [stage]
+      )
+
+      result = pipe.call(text: "Long document content")
+
+      expect(result[:text]).to eq("Long document content")
+      expect(result[:summary]).to eq("Summary: Long document content")
+      expect(result[:word_count]).to eq(3)
+    end
+
+    it "chains BAML with transform" do
+      transform = Brainpipe::Operations::Transform.new(
+        options: { from: :input, to: :text }
+      )
+
+      baml_op = Brainpipe::Operations::Baml.new(
+        options: { function: :summarize }
+      )
+
+      stage1 = Brainpipe::Stage.new(
+        name: :transform,
+        mode: :merge,
+        operations: [transform]
+      )
+
+      stage2 = Brainpipe::Stage.new(
+        name: :summarize,
+        mode: :merge,
+        operations: [baml_op]
+      )
+
+      pipe = Brainpipe::Pipe.new(
+        name: :chained_baml,
+        stages: [stage1, stage2]
+      )
+
+      result = pipe.call(input: "original content")
+
+      expect(result[:summary]).to eq("Summary: original content")
+    end
+
+    it "uses input and output mapping for BAML fields" do
+      translate_func = instance_double(Brainpipe::BamlFunction, name: :translate)
+      allow(translate_func).to receive(:input_schema).and_return({
+        text: { type: String, optional: false },
+        language: { type: String, optional: false }
+      })
+      allow(translate_func).to receive(:output_schema).and_return({
+        translated_text: { type: String, optional: false }
+      })
+      allow(translate_func).to receive(:call) do |input, **_|
+        { translated_text: "[#{input[:language]}] #{input[:text]}" }
+      end
+      allow(Brainpipe::BamlAdapter).to receive(:function).with(:translate).and_return(translate_func)
+
+      baml_op = Brainpipe::Operations::Baml.new(
+        options: {
+          function: :translate,
+          inputs: { text: :content, language: :target_lang },
+          outputs: { translated_text: :result }
+        }
+      )
+
+      stage = Brainpipe::Stage.new(
+        name: :translate,
+        mode: :merge,
+        operations: [baml_op]
+      )
+
+      pipe = Brainpipe::Pipe.new(
+        name: :translate_pipe,
+        stages: [stage]
+      )
+
+      result = pipe.call(content: "hello world", target_lang: "es")
+
+      expect(result[:result]).to eq("[es] hello world")
+    end
+  end
+
   describe "type safety validation" do
     it "validates type consistency in parallel operations" do
       op1_class = Class.new(Brainpipe::Operation) do

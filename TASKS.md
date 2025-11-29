@@ -330,25 +330,25 @@
 
 ## Phase 13: BAML Integration
 
-- [ ] Add `baml` as optional dependency in gemspec
-- [ ] Create `lib/brainpipe/baml_adapter.rb`
-  - [ ] `function(name)` - get BAML function
-  - [ ] `input_schema(function)` - extract input types
-  - [ ] `output_schema(function)` - extract output types
-  - [ ] Check if BAML is available
-- [ ] Create `lib/brainpipe/operations/baml.rb`
-  - [ ] `function(name)` DSL
-  - [ ] Dynamic `declared_reads` from BAML schema
-  - [ ] Dynamic `declared_sets` from BAML schema
-  - [ ] Execution via BAML client
-  - [ ] Metrics integration (token tracking)
-- [ ] Implement `ModelConfig#to_baml_client_registry`
-- [ ] Write specs for BAML integration
-  - [ ] Function wrapping
-  - [ ] Schema introspection
-  - [ ] Client registry conversion
-  - [ ] Graceful degradation when BAML not installed
-- [ ] Integration test with BAML operation in pipe
+- [x] Add `baml` as optional dependency in gemspec
+- [x] Create `lib/brainpipe/baml_adapter.rb`
+  - [x] `function(name)` - get BAML function
+  - [x] `input_schema(function)` - extract input types
+  - [x] `output_schema(function)` - extract output types
+  - [x] Check if BAML is available
+- [x] Create `lib/brainpipe/operations/baml.rb`
+  - [x] `function(name)` DSL
+  - [x] Dynamic `declared_reads` from BAML schema
+  - [x] Dynamic `declared_sets` from BAML schema
+  - [x] Execution via BAML client
+  - [x] Metrics integration (token tracking)
+- [x] Implement `ModelConfig#to_baml_client_registry`
+- [x] Write specs for BAML integration
+  - [x] Function wrapping
+  - [x] Schema introspection
+  - [x] Client registry conversion
+  - [x] Graceful degradation when BAML not installed
+- [x] Integration test with BAML operation in pipe
 
 ---
 
