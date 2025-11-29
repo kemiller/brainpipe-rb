@@ -1,0 +1,23 @@
+Extract named entities from the following text.
+
+Entity types to extract:
+{{#entity_types}}
+- {{.}}
+{{/entity_types}}
+
+Text:
+{{{input_text}}}
+
+Return a JSON object with exactly this structure:
+{
+  "entities": [
+    {"name": "entity name", "type": "entity type", "confidence": 0.95}
+  ],
+  "summary": "A brief one-sentence summary of the text"
+}
+
+Rules:
+- Only extract entities of the specified types
+- Confidence should be between 0.0 and 1.0
+- Include all instances of each entity found
+- Return valid JSON only, no other text

@@ -704,35 +704,35 @@ examples/entity_extractor/
 └── run.rb
 ```
 
-- [ ] Directory structure created
+- [x] Directory structure created
 
 ### Task 20.2: Create model config
 **File:** `examples/entity_extractor/config/brainpipe/config.yml`
 
-- [ ] Configure `openai` model
-- [ ] Configure `anthropic` model
-- [ ] Configure `gemini` model
+- [x] Configure `openai` model
+- [x] Configure `anthropic` model
+- [x] Configure `gemini` model
 
 ### Task 20.3: Create pipeline config
 **File:** `examples/entity_extractor/config/brainpipe/pipes/entity_extractor.yml`
 
-- [ ] Define `extract` stage with LlmCall operation
-- [ ] Set capability: `text_to_text`
-- [ ] Reference prompt template file
+- [x] Define `extract` stage with LlmCall operation
+- [x] Set capability: `text_to_text`
+- [x] Reference prompt template file
 
 ### Task 20.4: Create prompt template
 **File:** `examples/entity_extractor/prompts/extract_entities.mustache`
 
-- [ ] Mustache template with `{{{ input_text }}}` interpolation
-- [ ] Section for entity_types iteration
-- [ ] JSON output instructions
+- [x] Mustache template with `{{{ input_text }}}` interpolation
+- [x] Section for entity_types iteration
+- [x] JSON output instructions
 
 ### Task 20.5: Create demo script
 **File:** `examples/entity_extractor/run.rb`
 
-- [ ] Load Brainpipe configuration
-- [ ] Run pipeline with sample text
-- [ ] Print extracted entities
+- [x] Load Brainpipe configuration
+- [x] Run pipeline with sample text
+- [x] Print extracted entities
 
 ### Task 20.6: Test example end-to-end
 **Manual test:**
@@ -742,8 +742,8 @@ export OPENAI_API_KEY=your-key
 bundle exec ruby run.rb
 ```
 
-- [ ] Verify entities printed to console
-- [ ] Test switching to different provider (anthropic, gemini)
+- [x] Verify entities printed to console
+- [x] Test switching to different provider (anthropic, gemini)
 
 ---
 

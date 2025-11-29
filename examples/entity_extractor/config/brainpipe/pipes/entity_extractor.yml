@@ -1,0 +1,17 @@
+name: entity_extractor
+
+stages:
+  - name: extract
+    mode: merge
+    operations:
+      - type: Brainpipe::Operations::LlmCall
+        model: openai
+        options:
+          capability: text_to_text
+          prompt_file: ../prompts/extract_entities.mustache
+          inputs:
+            input_text: String
+            entity_types: Array
+          outputs:
+            entities: Array
+            summary: String
