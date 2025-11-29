@@ -490,6 +490,43 @@ end
 - At config load: validate model config has capabilities operation requires
 - Out of scope: validating model can actually perform claimed capabilities (trust the config)
 
+### Type Flow & Schema Propagation
+
+Types flow through the pipeline via the `declared_reads`/`declared_sets`/`declared_deletes` contract. Each operation receives the **prefix schema** (cumulative output types from all previous stages) when queried for its contract.
+
+**Schema flow rule:**
+```
+stage_output_schema = prefix_schema - deletes + sets
+```
+
+Operations only declare what they explicitly touch; all other fields flow through unchanged.
+
+**Pipeline validation walks stage-by-stage:**
+1. Start with pipe input schema
+2. For each stage, query each operation's `declared_sets(prefix_schema)` and `declared_deletes(prefix_schema)`
+3. Compute new prefix: `prefix - deletes + sets`
+4. Validate next stage's `declared_reads(prefix)` are satisfied
+5. Repeat until end
+
+**Type preservation for utility operations:**
+- Transform/rename: looks up source field type from `prefix_schema`, declares same type for target
+- Filter: declares only the fields it inspects; everything flows through
+- Merge: must explicitly declare `target_type` since combining fields produces a new type
+
+**Load-time type conflict detection:**
+
+When multiple operations in a parallel stage set the same field, types must match:
+
+```ruby
+# Both operations set :result - types must be identical
+stage:
+  operations:
+    - type: OpA  # sets :result, String
+    - type: OpB  # sets :result, Integer  → TypeConflictError at load time
+```
+
+This is validated during pipe construction by comparing `declared_sets(prefix_schema)` across parallel operations.
+
 ---
 
 ## Gem File Structure
@@ -615,9 +652,10 @@ class Operation
   def model                     # Accessor for model (available in execute block)
 
   # Instance-level property introspection (FINAL resolution - used for validation)
-  def declared_reads            # Returns { name: Type, ... }
-  def declared_sets             # Returns { name: Type, ... }
-  def declared_deletes          # Returns [name, ...]
+  # prefix_schema is passed during pipeline validation to enable type lookup
+  def declared_reads(prefix_schema = {})    # Returns { name: Type, ... }
+  def declared_sets(prefix_schema = {})     # Returns { name: Type, ... }
+  def declared_deletes(prefix_schema = {})  # Returns [name, ...]
   def required_model_capability # Returns capability symbol or nil
   def error_handler             # Returns nil, true, or Proc
 end
@@ -626,7 +664,7 @@ end
 **Instance-level resolution**: Property declarations are resolved on the *instance* after initialization. This enables:
 
 ```ruby
-# Dynamic properties based on options
+# Dynamic properties based on options - type preserved via prefix_schema lookup
 class RenameField < Brainpipe::Operation
   def initialize(model: nil, options: {})
     super
@@ -634,9 +672,10 @@ class RenameField < Brainpipe::Operation
     @to = options[:to]
   end
 
-  def declared_reads = { @from => T.untyped }
-  def declared_sets = { @to => T.untyped }
-  def declared_deletes = [@from]
+  # Type is looked up from prefix_schema, preserving the source field's type
+  def declared_reads(prefix_schema = {}) = { @from => prefix_schema[@from] || Any }
+  def declared_sets(prefix_schema = {}) = { @to => prefix_schema[@from] || Any }
+  def declared_deletes(prefix_schema = {}) = [@from]
 
   def create
     from, to = @from, @to
@@ -719,6 +758,7 @@ module Brainpipe
   class MissingModelError < ConfigurationError; end
   class CapabilityMismatchError < ConfigurationError; end
   class IncompatibleStagesError < ConfigurationError; end
+  class TypeConflictError < ConfigurationError; end  # parallel ops set same field with different types
 
   # Runtime errors
   class ExecutionError < Error; end

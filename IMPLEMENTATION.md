@@ -218,20 +218,247 @@
 
 ---
 
-## Phase 12: Built-in Operations
+## Phase 12: Built-in Operations (Type-Safe)
 
-**Goal:** Ship useful operations out of the box.
+**Goal:** Ship useful operations that preserve type information through the pipeline.
 
-**Components:**
-- `lib/brainpipe/operations/transform.rb`
-- `lib/brainpipe/operations/filter.rb`
-- `lib/brainpipe/operations/merge.rb`
-- `lib/brainpipe/operations/log.rb`
+### Type Flow Mechanism
 
-**Testing:**
-- Each operation's specific behavior
-- Property declarations
-- Integration in pipes
+Operations receive the prefix schema when declaring their contracts. This enables utility operations to look up source field types and propagate them correctly.
+
+**Schema flow rule:**
+```
+stage_output_schema = prefix_schema - deletes + sets
+```
+
+Operations only declare what they explicitly touch; everything else flows through unchanged.
+
+**Method signature change:**
+```ruby
+# Updated signatures (backward compatible via default param)
+def declared_reads(prefix_schema = {})
+def declared_sets(prefix_schema = {})
+def declared_deletes(prefix_schema = {})
+```
+
+### Prerequisites (updates to existing code)
+
+**`lib/brainpipe/operation.rb`:**
+- Update `declared_reads`, `declared_sets`, `declared_deletes` to accept `prefix_schema = {}`
+
+**`lib/brainpipe/pipe.rb`:**
+- Pass prefix schema during `validate_stage_compatibility!`
+- Add `validate_parallel_type_consistency!` for stages with multiple operations
+
+**`lib/brainpipe/stage.rb`:**
+- Update `aggregate_reads`/`aggregate_sets` to pass prefix schema to operations
+
+**`lib/brainpipe/errors.rb`:**
+- Add `TypeConflictError < ConfigurationError`
+
+### Load-Time Type Conflict Detection
+
+When validating parallel operations in a stage:
+1. Collect `declared_sets(prefix_schema)` from all operations
+2. For fields set by multiple operations, verify types match
+3. Raise `TypeConflictError` if same field has different types
+
+```ruby
+def validate_parallel_type_consistency!(operations, prefix_schema)
+  all_sets = {}
+  operations.each do |op|
+    op.declared_sets(prefix_schema).each do |field, type|
+      if all_sets[field] && all_sets[field] != type
+        raise TypeConflictError,
+          "Field '#{field}' set with conflicting types: #{all_sets[field]} vs #{type}"
+      end
+      all_sets[field] = type
+    end
+  end
+end
+```
+
+### Components
+
+**`lib/brainpipe/operations/transform.rb`** - Rename/copy fields with type preservation
+
+```ruby
+class Transform < Brainpipe::Operation
+  # options: { from: :old_name, to: :new_name, delete_source: true }
+
+  def initialize(model: nil, options: {})
+    super
+    @from = options[:from]&.to_sym
+    @to = options[:to]&.to_sym
+    @delete_source = options.fetch(:delete_source, true)
+  end
+
+  def declared_reads(prefix_schema = {})
+    { @from => prefix_schema[@from] || Any }
+  end
+
+  def declared_sets(prefix_schema = {})
+    { @to => prefix_schema[@from] || Any }
+  end
+
+  def declared_deletes(prefix_schema = {})
+    @delete_source ? [@from] : []
+  end
+
+  def create
+    from, to, delete = @from, @to, @delete_source
+    ->(namespaces) {
+      namespaces.map do |ns|
+        result = ns.merge(to => ns[from])
+        delete ? result.delete(from) : result
+      end
+    }
+  end
+end
+```
+
+**`lib/brainpipe/operations/filter.rb`** - Conditional pass-through (pure passthrough for schema)
+
+```ruby
+class Filter < Brainpipe::Operation
+  # options: { field: :status, value: "active" }
+  #   or:    { condition: ->(ns) { ns[:score] > 0.5 } }
+
+  def initialize(model: nil, options: {})
+    super
+    @field = options[:field]&.to_sym
+    @value = options[:value]
+    @condition = options[:condition]
+  end
+
+  def declared_reads(prefix_schema = {})
+    @field ? { @field => prefix_schema[@field] || Any } : {}
+  end
+
+  def declared_sets(prefix_schema = {})
+    {}
+  end
+
+  def declared_deletes(prefix_schema = {})
+    []
+  end
+
+  def create
+    field, value, condition = @field, @value, @condition
+    ->(namespaces) {
+      namespaces.select do |ns|
+        if condition
+          condition.call(ns)
+        else
+          ns[field] == value
+        end
+      end
+    }
+  end
+end
+```
+
+**`lib/brainpipe/operations/merge.rb`** - Combine multiple fields into one
+
+```ruby
+class Merge < Brainpipe::Operation
+  # options: { sources: [:first_name, :last_name], target: :full_name,
+  #            combiner: ->(vals) { vals.join(" ") },
+  #            target_type: String, delete_sources: false }
+
+  def initialize(model: nil, options: {})
+    super
+    @sources = Array(options[:sources]).map(&:to_sym)
+    @target = options[:target]&.to_sym
+    @combiner = options[:combiner] || ->(vals) { vals }
+    @target_type = options[:target_type] || Any
+    @delete_sources = options.fetch(:delete_sources, false)
+  end
+
+  def declared_reads(prefix_schema = {})
+    @sources.each_with_object({}) { |s, h| h[s] = prefix_schema[s] || Any }
+  end
+
+  def declared_sets(prefix_schema = {})
+    { @target => @target_type }
+  end
+
+  def declared_deletes(prefix_schema = {})
+    @delete_sources ? @sources : []
+  end
+
+  def create
+    sources, target, combiner, delete = @sources, @target, @combiner, @delete_sources
+    ->(namespaces) {
+      namespaces.map do |ns|
+        values = sources.map { |s| ns[s] }
+        result = ns.merge(target => combiner.call(values))
+        delete ? sources.reduce(result) { |r, s| r.delete(s) } : result
+      end
+    }
+  end
+end
+```
+
+**`lib/brainpipe/operations/log.rb`** - Debug logging (pure passthrough)
+
+```ruby
+class Log < Brainpipe::Operation
+  # options: { fields: [:foo, :bar], message: "Debug point", level: :info }
+
+  def initialize(model: nil, options: {})
+    super
+    @fields = options[:fields]&.map(&:to_sym)
+    @message = options[:message]
+    @level = options[:level] || :debug
+  end
+
+  def declared_reads(prefix_schema = {})
+    @fields&.each_with_object({}) { |f, h| h[f] = prefix_schema[f] || Any } || {}
+  end
+
+  def declared_sets(prefix_schema = {})
+    {}
+  end
+
+  def declared_deletes(prefix_schema = {})
+    []
+  end
+
+  def create
+    fields, message, level = @fields, @message, @level
+    ->(namespaces) {
+      namespaces.each do |ns|
+        output = { message: message, namespace_id: ns.object_id }
+        output[:fields] = fields.to_h { |f| [f, ns[f]] } if fields
+        Brainpipe.logger&.send(level, output)
+      end
+      namespaces
+    }
+  end
+end
+```
+
+### Testing
+
+**Type preservation:**
+- Transform renames field, verify output schema has correct type
+- Chained transforms (A→B→C) preserve type through chain
+- Merge declares explicit target_type, verify it's enforced
+
+**Type conflict detection:**
+- Two parallel ops setting same field with same type: OK
+- Two parallel ops setting same field with different types: `TypeConflictError` at load time
+
+**Schema flow:**
+- Verify `prefix - deletes + sets` calculation
+- Fields not touched by operation flow through unchanged
+
+**Each operation:**
+- Transform: rename, copy (delete_source: false), type lookup from prefix
+- Filter: field/value match, custom condition, returns subset of namespaces
+- Merge: multiple sources combined, target_type enforced, optional source deletion
+- Log: pure passthrough, no schema changes
 
 **Why twelfth:** Built-ins are conveniences. Core framework must work first.
 
