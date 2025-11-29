@@ -528,95 +528,95 @@ bundle exec ruby run.rb
 ### Task 18.1: Create provider adapters infrastructure
 **File:** `lib/brainpipe/provider_adapters.rb`
 
-- [ ] Create `Brainpipe::ProviderAdapters` module
-- [ ] Implement `register(provider, adapter_class)` for adapter registration
-- [ ] Implement `for(provider)` to retrieve adapter by provider name
-- [ ] Implement `normalize_provider(provider)` - converts "google-ai" to `:google_ai`
-- [ ] Implement `to_baml_provider(provider)` - converts `:google_ai` to `"google-ai"`
-- [ ] Raise `ConfigurationError` for unknown providers
+- [x] Create `Brainpipe::ProviderAdapters` module
+- [x] Implement `register(provider, adapter_class)` for adapter registration
+- [x] Implement `for(provider)` to retrieve adapter by provider name
+- [x] Implement `normalize_provider(provider)` - converts "google-ai" to `:google_ai`
+- [x] Implement `to_baml_provider(provider)` - converts `:google_ai` to `"google-ai"`
+- [x] Raise `ConfigurationError` for unknown providers
 
 ### Task 18.2: Create base adapter class
 **File:** `lib/brainpipe/provider_adapters/base.rb`
 
-- [ ] `call(prompt:, model_config:, images: [], json_mode: false)` - abstract, raises NotImplementedError
-- [ ] `extract_text(response)` - abstract, raises NotImplementedError
-- [ ] `extract_image(response)` - default returns nil (override where supported)
-- [ ] `build_headers(model_config)` - helper for auth headers
-- [ ] `execute_request(uri, body, headers)` - shared HTTP execution via Net::HTTP
+- [x] `call(prompt:, model_config:, images: [], json_mode: false)` - abstract, raises NotImplementedError
+- [x] `extract_text(response)` - abstract, raises NotImplementedError
+- [x] `extract_image(response)` - default returns nil (override where supported)
+- [x] `build_headers(model_config)` - helper for auth headers
+- [x] `execute_request(uri, body, headers)` - shared HTTP execution via Net::HTTP
 
 ### Task 18.3: Create OpenAI adapter
 **File:** `lib/brainpipe/provider_adapters/openai.rb`
 
-- [ ] Implement `call` for chat completions API
-  - [ ] Build messages array with user content
-  - [ ] Handle images as base64 data URLs in content array
-  - [ ] Set `response_format: { type: "json_object" }` when json_mode
-- [ ] Implement `extract_text` - `response.dig("choices", 0, "message", "content")`
-- [ ] Note: No image generation in chat completions (DALL-E uses different API)
+- [x] Implement `call` for chat completions API
+  - [x] Build messages array with user content
+  - [x] Handle images as base64 data URLs in content array
+  - [x] Set `response_format: { type: "json_object" }` when json_mode
+- [x] Implement `extract_text` - `response.dig("choices", 0, "message", "content")`
+- [x] Note: No image generation in chat completions (DALL-E uses different API)
 
 ### Task 18.4: Create Anthropic adapter
 **File:** `lib/brainpipe/provider_adapters/anthropic.rb`
 
-- [ ] Implement `call` for messages API
-  - [ ] Build content array with text and image blocks
-  - [ ] Handle images as base64 with media_type
-  - [ ] Set appropriate headers (anthropic-version, x-api-key)
-- [ ] Implement `extract_text` - `response.dig("content", 0, "text")`
-- [ ] Note: No image generation currently supported
+- [x] Implement `call` for messages API
+  - [x] Build content array with text and image blocks
+  - [x] Handle images as base64 with media_type
+  - [x] Set appropriate headers (anthropic-version, x-api-key)
+- [x] Implement `extract_text` - `response.dig("content", 0, "text")`
+- [x] Note: No image generation currently supported
 
 ### Task 18.5: Create Google AI adapter
 **File:** `lib/brainpipe/provider_adapters/google_ai.rb`
 
-- [ ] Implement `call` for generateContent API
-  - [ ] Build parts array with text and inlineData
-  - [ ] Handle images as base64 inlineData with mimeType
-  - [ ] Support generationConfig for temperature, etc.
-- [ ] Implement `extract_text` - `response.dig("candidates", 0, "content", "parts", 0, "text")`
-- [ ] Implement `extract_image` - find part with inlineData, return `Image.from_base64`
+- [x] Implement `call` for generateContent API
+  - [x] Build parts array with text and inlineData
+  - [x] Handle images as base64 inlineData with mimeType
+  - [x] Support generationConfig for temperature, etc.
+- [x] Implement `extract_text` - `response.dig("candidates", 0, "content", "parts", 0, "text")`
+- [x] Implement `extract_image` - find part with inlineData, return `Image.from_base64`
 
 ### Task 18.6: Register adapters
 **File:** `lib/brainpipe/provider_adapters.rb`
 
-- [ ] Register `:openai` adapter
-- [ ] Register `:anthropic` adapter
-- [ ] Register `:google_ai` adapter
+- [x] Register `:openai` adapter
+- [x] Register `:anthropic` adapter
+- [x] Register `:google_ai` adapter
 
 ### Task 18.7: Add requires
 **File:** `lib/brainpipe.rb`
 
-- [ ] Add `require_relative "brainpipe/provider_adapters"`
-- [ ] Add `require_relative "brainpipe/provider_adapters/base"`
-- [ ] Add `require_relative "brainpipe/provider_adapters/openai"`
-- [ ] Add `require_relative "brainpipe/provider_adapters/anthropic"`
-- [ ] Add `require_relative "brainpipe/provider_adapters/google_ai"`
+- [x] Add `require_relative "brainpipe/provider_adapters"`
+- [x] Add `require_relative "brainpipe/provider_adapters/base"`
+- [x] Add `require_relative "brainpipe/provider_adapters/openai"`
+- [x] Add `require_relative "brainpipe/provider_adapters/anthropic"`
+- [x] Add `require_relative "brainpipe/provider_adapters/google_ai"`
 
 ### Task 18.8: Test provider adapters
 **File:** `spec/brainpipe/provider_adapters_spec.rb`
 
-- [ ] Test `normalize_provider` converts hyphens to underscores
-- [ ] Test `to_baml_provider` converts underscores to hyphens
-- [ ] Test `for` returns correct adapter for each provider
-- [ ] Test `for` raises ConfigurationError for unknown provider
+- [x] Test `normalize_provider` converts hyphens to underscores
+- [x] Test `to_baml_provider` converts underscores to hyphens
+- [x] Test `for` returns correct adapter for each provider
+- [x] Test `for` raises ConfigurationError for unknown provider
 
 **File:** `spec/brainpipe/provider_adapters/openai_spec.rb`
 
-- [ ] Test request building with text-only prompt
-- [ ] Test request building with images
-- [ ] Test json_mode sets response_format
-- [ ] Test extract_text from response
+- [x] Test request building with text-only prompt
+- [x] Test request building with images
+- [x] Test json_mode sets response_format
+- [x] Test extract_text from response
 
 **File:** `spec/brainpipe/provider_adapters/anthropic_spec.rb`
 
-- [ ] Test request building with text-only prompt
-- [ ] Test request building with images
-- [ ] Test extract_text from response
+- [x] Test request building with text-only prompt
+- [x] Test request building with images
+- [x] Test extract_text from response
 
 **File:** `spec/brainpipe/provider_adapters/google_ai_spec.rb`
 
-- [ ] Test request building with text-only prompt
-- [ ] Test request building with images
-- [ ] Test extract_text from response
-- [ ] Test extract_image from response with inlineData
+- [x] Test request building with text-only prompt
+- [x] Test request building with images
+- [x] Test extract_text from response
+- [x] Test extract_image from response with inlineData
 
 **Run:** `bundle exec rspec spec/brainpipe/provider_adapters*`
 

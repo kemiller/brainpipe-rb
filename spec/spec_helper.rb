@@ -1,6 +1,7 @@
 require "brainpipe"
 require "tmpdir"
 require "fileutils"
+require "webmock/rspec"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
