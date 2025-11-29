@@ -527,7 +527,7 @@ stages:
             mood: String
           outputs:
             generated_image: Brainpipe::Image
-          image_extractor: Brainpipe::Extractors::GeminiImage
+          # image_extractor not needed - GoogleAI adapter handles it automatically
 ```
 
 ### run.rb

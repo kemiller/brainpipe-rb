@@ -435,7 +435,7 @@ operations:
         style: String
       outputs:
         generated_image: Brainpipe::Image
-      image_extractor: Brainpipe::Extractors::GeminiImage
+      # Adapter's extract_image used automatically for google_ai provider
 ```
 
 **Image-to-Image (Edit) Example:**
@@ -456,7 +456,7 @@ operations:
         edit_instructions: String
       outputs:
         edited_image: Brainpipe::Image
-      image_extractor: Brainpipe::Extractors::GeminiImage
+      # image_extractor: MyCustomExtractor  # Optional override if needed
 ```
 
 **With template file:**
@@ -477,11 +477,11 @@ operations:
 **How It Works:**
 1. Loads prompt template from `prompt` string or `prompt_file` path
 2. Renders template using Mustache with namespace values
-3. Selects provider adapter based on model config (openai, anthropic, google_ai, etc.)
+3. Selects provider adapter based on model config (openai, anthropic, google_ai)
 4. Adapter marshals request to provider-specific format, handling images appropriately
 5. Adapter executes HTTP call and returns raw response
-6. For text outputs: extracts text, parses as JSON, validates against schema
-7. For image outputs: passes response to configured `image_extractor`
+6. For text outputs: adapter extracts text, parses as JSON, validates against schema
+7. For image outputs: adapter extracts image (or uses optional `image_extractor` override)
 8. Merges validated output into namespace
 
 **Configuration Options:**
@@ -493,11 +493,10 @@ operations:
 | `prompt_file` | Yes* | Path to Mustache template file (relative to config dir) |
 | `inputs` | Yes | Map of input variable names to types |
 | `outputs` | Yes | Map of output variable names to types |
-| `image_extractor` | No** | Class to extract images from response (required for image outputs) |
+| `image_extractor` | No | Override adapter's default image extractor (rarely needed) |
 | `json_mode` | No | Force JSON response mode if provider supports it (default: true for text outputs) |
 
 *One of `prompt` or `prompt_file` is required.
-**Required when outputs contain Image types.
 
 **Mustache Template Syntax:**
 
@@ -514,7 +513,9 @@ For Image inputs, the adapter handles rendering appropriately for the provider.
 
 **Provider Adapters:**
 
-Provider adapters handle the marshalling between Brainpipe's generic request format and provider-specific APIs. Adapters are selected automatically based on `model_config.provider`.
+Provider adapters handle all provider-specific concerns: request marshalling, response parsing, text extraction, and image extraction. Each adapter knows how to work with its provider's API format.
+
+Adapters are selected automatically based on `model_config.provider`. For image outputs, the adapter's built-in image extractor is used by default, with an optional override via `image_extractor`.
 
 ```ruby
 module Brainpipe::ProviderAdapters
@@ -525,6 +526,10 @@ module Brainpipe::ProviderAdapters
 
     def extract_text(response)
       raise NotImplementedError
+    end
+
+    def extract_image(response)
+      nil  # Override in adapters that support image output
     end
   end
 
@@ -538,6 +543,8 @@ module Brainpipe::ProviderAdapters
     def extract_text(response)
       response.dig("choices", 0, "message", "content")
     end
+
+    # OpenAI doesn't return images in chat completions (DALL-E uses different API)
   end
 
   class Anthropic < Base
@@ -549,6 +556,8 @@ module Brainpipe::ProviderAdapters
     def extract_text(response)
       response.dig("content", 0, "text")
     end
+
+    # Anthropic doesn't currently support image generation in messages API
   end
 
   class GoogleAI < Base
@@ -560,8 +569,47 @@ module Brainpipe::ProviderAdapters
     def extract_text(response)
       response.dig("candidates", 0, "content", "parts", 0, "text")
     end
+
+    def extract_image(response)
+      parts = response.dig("candidates", 0, "content", "parts") || []
+      parts.each do |part|
+        if (data = part["inlineData"])
+          return Brainpipe::Image.from_base64(
+            data["data"],
+            mime_type: data["mimeType"]
+          )
+        end
+      end
+      nil
+    end
   end
 end
+```
+
+**Provider Symbol Convention:**
+
+Brainpipe uses Ruby-idiomatic underscored symbols internally (`:google_ai`, `:openai`). When interfacing with BAML (which uses hyphenated strings like `"google-ai"`), conversion happens automatically:
+
+```ruby
+module Brainpipe::ProviderAdapters
+  def self.normalize_provider(provider)
+    # Accept either format, normalize to underscored symbol
+    provider.to_s.tr("-", "_").to_sym
+  end
+
+  def self.to_baml_provider(provider)
+    # Convert to BAML's hyphenated string format
+    provider.to_s.tr("_", "-")
+  end
+end
+```
+
+In YAML configs, either format works:
+```yaml
+models:
+  gemini:
+    provider: google_ai    # Ruby style (preferred)
+    # provider: google-ai  # BAML style (also accepted)
 ```
 
 **Adapter Registry:**
@@ -569,13 +617,12 @@ end
 Brainpipe::ProviderAdapters.register(:openai, OpenAI)
 Brainpipe::ProviderAdapters.register(:anthropic, Anthropic)
 Brainpipe::ProviderAdapters.register(:google_ai, GoogleAI)
-Brainpipe::ProviderAdapters.register(:vertex, Vertex)
-Brainpipe::ProviderAdapters.register(:bedrock, Bedrock)
-Brainpipe::ProviderAdapters.register(:azure, Azure)
 
-# Selection
+# Selection (normalizes provider name automatically)
 adapter = Brainpipe::ProviderAdapters.for(model_config.provider)
 ```
+
+Additional providers (Vertex, Bedrock, Azure) can be added via pull request as needed.
 
 **Ruby Implementation:**
 ```ruby
@@ -588,7 +635,7 @@ class Brainpipe::Operations::LlmCall < Operation
     @capability = options[:capability]&.to_sym
     @input_types = options[:inputs] || {}
     @output_types = options[:outputs] || {}
-    @image_extractor = resolve_extractor(options[:image_extractor])
+    @image_extractor_override = resolve_extractor(options[:image_extractor])
     @json_mode = options.fetch(:json_mode, !has_image_output?)
   end
 
@@ -609,20 +656,18 @@ class Brainpipe::Operations::LlmCall < Operation
     output_types = @output_types
     json_mode = @json_mode
     model_cfg = model_config
-    extractor = @image_extractor
+    extractor_override = @image_extractor_override
+    image_output = has_image_output?
 
     ->(namespaces) {
       adapter = ProviderAdapters.for(model_cfg.provider)
 
       namespaces.map do |ns|
-        # Build template context, marking images for adapter
         context = build_context(ns)
         images = extract_images(ns)
 
-        # Render template with Mustache
         prompt = Mustache.render(template, context)
 
-        # Call provider
         response = adapter.call(
           prompt: prompt,
           model_config: model_cfg,
@@ -630,14 +675,17 @@ class Brainpipe::Operations::LlmCall < Operation
           json_mode: json_mode
         )
 
-        # Extract outputs based on type
-        if extractor
-          # Image output - use extractor
-          image = extractor.call(response)
+        if image_output
+          # Use override extractor if provided, otherwise adapter's default
+          image = if extractor_override
+            extractor_override.call(response)
+          else
+            adapter.extract_image(response)
+          end
+
           image_field = output_types.find { |_, t| t == Image || t.to_s.include?("Image") }&.first
           ns.merge(image_field => image)
         else
-          # Text/JSON output
           text = adapter.extract_text(response)
           json = JSON.parse(text)
           validate_output!(json, output_types)

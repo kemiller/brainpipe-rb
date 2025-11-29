@@ -523,6 +523,285 @@ bundle exec ruby run.rb
 
 ---
 
+## Phase 18: Provider Adapters
+
+### Task 18.1: Create provider adapters infrastructure
+**File:** `lib/brainpipe/provider_adapters.rb`
+
+- [ ] Create `Brainpipe::ProviderAdapters` module
+- [ ] Implement `register(provider, adapter_class)` for adapter registration
+- [ ] Implement `for(provider)` to retrieve adapter by provider name
+- [ ] Implement `normalize_provider(provider)` - converts "google-ai" to `:google_ai`
+- [ ] Implement `to_baml_provider(provider)` - converts `:google_ai` to `"google-ai"`
+- [ ] Raise `ConfigurationError` for unknown providers
+
+### Task 18.2: Create base adapter class
+**File:** `lib/brainpipe/provider_adapters/base.rb`
+
+- [ ] `call(prompt:, model_config:, images: [], json_mode: false)` - abstract, raises NotImplementedError
+- [ ] `extract_text(response)` - abstract, raises NotImplementedError
+- [ ] `extract_image(response)` - default returns nil (override where supported)
+- [ ] `build_headers(model_config)` - helper for auth headers
+- [ ] `execute_request(uri, body, headers)` - shared HTTP execution via Net::HTTP
+
+### Task 18.3: Create OpenAI adapter
+**File:** `lib/brainpipe/provider_adapters/openai.rb`
+
+- [ ] Implement `call` for chat completions API
+  - [ ] Build messages array with user content
+  - [ ] Handle images as base64 data URLs in content array
+  - [ ] Set `response_format: { type: "json_object" }` when json_mode
+- [ ] Implement `extract_text` - `response.dig("choices", 0, "message", "content")`
+- [ ] Note: No image generation in chat completions (DALL-E uses different API)
+
+### Task 18.4: Create Anthropic adapter
+**File:** `lib/brainpipe/provider_adapters/anthropic.rb`
+
+- [ ] Implement `call` for messages API
+  - [ ] Build content array with text and image blocks
+  - [ ] Handle images as base64 with media_type
+  - [ ] Set appropriate headers (anthropic-version, x-api-key)
+- [ ] Implement `extract_text` - `response.dig("content", 0, "text")`
+- [ ] Note: No image generation currently supported
+
+### Task 18.5: Create Google AI adapter
+**File:** `lib/brainpipe/provider_adapters/google_ai.rb`
+
+- [ ] Implement `call` for generateContent API
+  - [ ] Build parts array with text and inlineData
+  - [ ] Handle images as base64 inlineData with mimeType
+  - [ ] Support generationConfig for temperature, etc.
+- [ ] Implement `extract_text` - `response.dig("candidates", 0, "content", "parts", 0, "text")`
+- [ ] Implement `extract_image` - find part with inlineData, return `Image.from_base64`
+
+### Task 18.6: Register adapters
+**File:** `lib/brainpipe/provider_adapters.rb`
+
+- [ ] Register `:openai` adapter
+- [ ] Register `:anthropic` adapter
+- [ ] Register `:google_ai` adapter
+
+### Task 18.7: Add requires
+**File:** `lib/brainpipe.rb`
+
+- [ ] Add `require_relative "brainpipe/provider_adapters"`
+- [ ] Add `require_relative "brainpipe/provider_adapters/base"`
+- [ ] Add `require_relative "brainpipe/provider_adapters/openai"`
+- [ ] Add `require_relative "brainpipe/provider_adapters/anthropic"`
+- [ ] Add `require_relative "brainpipe/provider_adapters/google_ai"`
+
+### Task 18.8: Test provider adapters
+**File:** `spec/brainpipe/provider_adapters_spec.rb`
+
+- [ ] Test `normalize_provider` converts hyphens to underscores
+- [ ] Test `to_baml_provider` converts underscores to hyphens
+- [ ] Test `for` returns correct adapter for each provider
+- [ ] Test `for` raises ConfigurationError for unknown provider
+
+**File:** `spec/brainpipe/provider_adapters/openai_spec.rb`
+
+- [ ] Test request building with text-only prompt
+- [ ] Test request building with images
+- [ ] Test json_mode sets response_format
+- [ ] Test extract_text from response
+
+**File:** `spec/brainpipe/provider_adapters/anthropic_spec.rb`
+
+- [ ] Test request building with text-only prompt
+- [ ] Test request building with images
+- [ ] Test extract_text from response
+
+**File:** `spec/brainpipe/provider_adapters/google_ai_spec.rb`
+
+- [ ] Test request building with text-only prompt
+- [ ] Test request building with images
+- [ ] Test extract_text from response
+- [ ] Test extract_image from response with inlineData
+
+**Run:** `bundle exec rspec spec/brainpipe/provider_adapters*`
+
+---
+
+## Phase 19: LlmCall Operation
+
+### Task 19.1: Add mustache dependency
+**File:** `brainpipe.gemspec`
+
+- [ ] Add `spec.add_dependency "mustache", "~> 1.0"`
+
+### Task 19.2: Create LlmCall operation
+**File:** `lib/brainpipe/operations/llm_call.rb`
+
+- [ ] `initialize(model: nil, options: {})`
+  - [ ] Load template from `prompt` or `prompt_file`
+  - [ ] Store `capability`, `inputs`, `outputs`
+  - [ ] Resolve optional `image_extractor` override
+  - [ ] Set `json_mode` default based on output types
+- [ ] `required_model_capability` - returns `@capability`
+- [ ] `declared_reads(prefix_schema = {})` - returns `@input_types`
+- [ ] `declared_sets(prefix_schema = {})` - returns `@output_types`
+- [ ] `create` - returns callable that:
+  - [ ] Gets adapter via `ProviderAdapters.for(model_config.provider)`
+  - [ ] Builds context from namespace (images marked as placeholders)
+  - [ ] Extracts images from namespace
+  - [ ] Renders template with `Mustache.render(template, context)`
+  - [ ] Calls `adapter.call(prompt:, model_config:, images:, json_mode:)`
+  - [ ] For image outputs: uses override extractor or `adapter.extract_image`
+  - [ ] For text outputs: parses JSON, validates, merges into namespace
+
+### Task 19.3: Add template loading
+**File:** `lib/brainpipe/operations/llm_call.rb`
+
+- [ ] `load_template(options)` private method
+  - [ ] If `prompt` key, return string directly
+  - [ ] If `prompt_file` key, read file relative to config path
+  - [ ] Raise ConfigurationError if neither present
+
+### Task 19.4: Add LlmCall require
+**File:** `lib/brainpipe.rb`
+
+- [ ] Add `require "mustache"` (guarded or in operation file)
+- [ ] Add `require_relative "brainpipe/operations/llm_call"`
+
+### Task 19.5: Update loader for LlmCall
+**File:** `lib/brainpipe/loader.rb`
+
+- [ ] Ensure `Brainpipe::Operations::LlmCall` is resolvable
+- [ ] Validate `capability` is present and valid
+- [ ] Validate model has required capability
+
+### Task 19.6: Test LlmCall operation
+**File:** `spec/brainpipe/operations/llm_call_spec.rb`
+
+- [ ] Test `required_model_capability` returns configured capability
+- [ ] Test `declared_reads` returns input types
+- [ ] Test `declared_sets` returns output types
+- [ ] Test template loading from inline `prompt`
+- [ ] Test template loading from `prompt_file`
+- [ ] Test Mustache interpolation of variables
+- [ ] Test Mustache section iteration for arrays
+- [ ] Test image input handling (placeholder in context, extracted separately)
+- [ ] Test text output parsing and validation
+- [ ] Test image output extraction via adapter
+- [ ] Test image output extraction via override extractor
+- [ ] Test json_mode default behavior
+
+**Run:** `bundle exec rspec spec/brainpipe/operations/llm_call_spec.rb`
+
+---
+
+## Phase 20: Entity Extractor Example
+
+### Task 20.1: Create example directory structure
+```
+examples/entity_extractor/
+├── config/
+│   └── brainpipe/
+│       └── pipes/
+├── prompts/
+└── run.rb
+```
+
+- [ ] Directory structure created
+
+### Task 20.2: Create model config
+**File:** `examples/entity_extractor/config/brainpipe/config.yml`
+
+- [ ] Configure `openai` model
+- [ ] Configure `anthropic` model
+- [ ] Configure `gemini` model
+
+### Task 20.3: Create pipeline config
+**File:** `examples/entity_extractor/config/brainpipe/pipes/entity_extractor.yml`
+
+- [ ] Define `extract` stage with LlmCall operation
+- [ ] Set capability: `text_to_text`
+- [ ] Reference prompt template file
+
+### Task 20.4: Create prompt template
+**File:** `examples/entity_extractor/prompts/extract_entities.mustache`
+
+- [ ] Mustache template with `{{{ input_text }}}` interpolation
+- [ ] Section for entity_types iteration
+- [ ] JSON output instructions
+
+### Task 20.5: Create demo script
+**File:** `examples/entity_extractor/run.rb`
+
+- [ ] Load Brainpipe configuration
+- [ ] Run pipeline with sample text
+- [ ] Print extracted entities
+
+### Task 20.6: Test example end-to-end
+**Manual test:**
+```bash
+cd examples/entity_extractor
+export OPENAI_API_KEY=your-key
+bundle exec ruby run.rb
+```
+
+- [ ] Verify entities printed to console
+- [ ] Test switching to different provider (anthropic, gemini)
+
+---
+
+## Phase Summary (18-20)
+
+| Phase | Description | Test Command |
+|-------|-------------|--------------|
+| 18 | Provider Adapters | `bundle exec rspec spec/brainpipe/provider_adapters*` |
+| 19 | LlmCall Operation | `bundle exec rspec spec/brainpipe/operations/llm_call_spec.rb` |
+| 20 | Entity Example | Manual: `ruby examples/entity_extractor/run.rb` |
+
+**Full test suite:** `bundle exec rspec`
+
+---
+
+## Implementation Notes
+
+### Provider Adapter Design
+
+The adapter pattern isolates all provider-specific logic:
+- Request format (messages structure, image encoding)
+- Authentication (header names, key format)
+- Response parsing (different JSON structures)
+- Image extraction (where supported)
+
+Each adapter is stateless and receives all context via method parameters.
+
+### Mustache Template Considerations
+
+- Use `{{{ }}}` (triple mustache) for unescaped content to avoid HTML escaping
+- Images in templates are rendered as `[IMAGE]` placeholder; actual image data passed separately to adapter
+- Template files use `.mustache` extension by convention
+- Mustache sections (`{{# list }}`) work with arrays for iteration
+
+### Provider Symbol Normalization
+
+BAML uses hyphenated provider names (`"google-ai"`), Ruby idiom is underscored symbols (`:google_ai`).
+The adapter registry normalizes on input:
+```ruby
+ProviderAdapters.for("google-ai")  # works
+ProviderAdapters.for(:google_ai)   # works
+ProviderAdapters.for("google_ai")  # works
+```
+
+### Image Handling in LlmCall
+
+1. Images in namespace are detected during context building
+2. Context gets `[IMAGE]` placeholder for template rendering
+3. Actual images extracted separately and passed to adapter
+4. Adapter encodes images appropriately for provider (base64 data URL, inlineData, etc.)
+
+### JSON Mode
+
+- Defaults to `true` for text outputs, `false` for image outputs
+- OpenAI: sets `response_format: { type: "json_object" }`
+- Anthropic: no native JSON mode (relies on prompt)
+- Google AI: no native JSON mode (relies on prompt)
+
+---
+
 ## Final Tasks
 
 - [ ] Review all public API for consistency

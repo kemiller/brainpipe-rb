@@ -136,11 +136,22 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-11.7: LlmCall MUST validate parsed JSON against the declared output schema
 - FR-11.8: LlmCall MUST raise an error if JSON parsing fails or output validation fails
 - FR-11.9: LlmCall MUST be provider-agnostic; provider-specific adapters handle request/response marshalling
-- FR-11.10: Provider adapters MUST be selected automatically based on model config
+- FR-11.10: Provider adapters MUST be selected automatically based on model config provider field
 - FR-11.11: LlmCall MUST declare a required capability (text_to_text, image_to_text, text_to_image, etc.)
 - FR-11.12: LlmCall MUST support Image type in inputs for multimodal capabilities
 - FR-11.13: LlmCall MUST support Image type in outputs for image generation capabilities
-- FR-11.14: For image outputs, LlmCall MUST use an image extractor (like BamlRaw)
+- FR-11.14: Provider adapters MUST include image extraction for providers that support it
+- FR-11.15: LlmCall MAY accept an optional image_extractor override for custom extraction logic
+
+### FR-12: Provider Adapters
+
+- FR-12.1: Provider adapters MUST handle request marshalling to provider-specific API format
+- FR-12.2: Provider adapters MUST handle response parsing from provider-specific format
+- FR-12.3: Provider adapters MUST provide text extraction from responses
+- FR-12.4: Provider adapters MUST provide image extraction from responses (where supported)
+- FR-12.5: The library MUST provide adapters for: openai, anthropic, google_ai
+- FR-12.6: Provider names MUST use Ruby-idiomatic underscored symbols internally (e.g., :google_ai)
+- FR-12.7: Provider names MUST be normalized from BAML's hyphenated format automatically (e.g., "google-ai" → :google_ai)
 
 ### FR-8: Model Configuration
 
