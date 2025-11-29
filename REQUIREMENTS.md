@@ -109,6 +109,18 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-7.1: BAML MUST be a first-class citizen with dedicated support
 - FR-7.2: BAML MUST NOT be required; pipes without BAML operations MUST work
 - FR-7.3: BAML operations SHOULD integrate with the metrics collector (FR-6.3)
+- FR-7.4: BAML operations MUST support raw response access when BAML parsing is insufficient (e.g., image outputs)
+- FR-7.5: Raw BAML operations MUST use BAML's Modular API to construct requests and access responses
+
+### FR-10: Image Support
+
+- FR-10.1: The library MUST provide a built-in Image type for representing images
+- FR-10.2: The Image type MUST support both URL and base64 representations
+- FR-10.3: The Image type MUST support lazy conversion between URL and base64 (fetch on demand)
+- FR-10.4: The Image type MUST be convertible to BAML image format for LLM input
+- FR-10.5: The Image type MUST support loading from file paths
+- FR-10.6: The Image type MUST track MIME type
+- FR-10.7: Operations MUST be able to extract images from raw LLM responses (e.g., Gemini's inlineData)
 
 ### FR-8: Model Configuration
 

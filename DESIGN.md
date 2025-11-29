@@ -192,6 +192,43 @@ reads :reviewers, [UserType]
 
 Runtime validation checks structure recursively and raises `TypeMismatchError` with path to violation (e.g., `"records[2].tags[0] expected String, got Integer"`).
 
+### Image Type
+
+The `Image` type is a flexible wrapper supporting both URL and base64 representations with lazy conversion.
+
+**Construction:**
+```ruby
+# From URL (lazy - base64 fetched on demand)
+image = Brainpipe::Image.from_url("https://example.com/photo.jpg")
+
+# From base64
+image = Brainpipe::Image.from_base64(data, mime_type: "image/png")
+
+# From file
+image = Brainpipe::Image.from_file("path/to/photo.jpg")
+```
+
+**Interface:**
+```ruby
+class Brainpipe::Image
+  attr_reader :mime_type
+
+  def url?          # true if constructed from URL
+  def base64?       # true if base64 data is available
+  def url           # returns URL or raises if base64-only
+  def base64        # returns base64 data, fetching from URL if needed
+  def to_baml_image # converts to BAML Image type for LLM input
+end
+```
+
+**MIME Type Inference:**
+- `.png` → `image/png`
+- `.jpg`, `.jpeg` → `image/jpeg`
+- `.gif` → `image/gif`
+- `.webp` → `image/webp`
+
+Image instances are frozen after construction. URL-to-base64 conversion caches the result internally.
+
 ### Error Handling
 
 Operations can declare error handling behavior:
@@ -246,6 +283,91 @@ end
 - `Brainpipe::Operations::Filter` - Conditional pass-through
 - `Brainpipe::Operations::Merge` - Combine properties
 - `Brainpipe::Operations::Log` - Debug logging
+
+### BamlRaw Operation
+
+For cases where BAML cannot parse the LLM response (e.g., image outputs), use `BamlRaw` to access raw HTTP responses via BAML's Modular API.
+
+**Usage:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::BamlRaw
+    model: gemini_flash
+    options:
+      function: FixImageProblems
+      inputs:
+        img: input_image
+        instructions: fix_instructions
+      image_extractor: Brainpipe::Extractors::GeminiImage
+```
+
+**How It Works:**
+1. Builds input from namespace using the `inputs` mapping
+2. Uses BAML's Modular API: `Baml::Client.request.FunctionName(**input)` to get raw request
+3. Executes HTTP request directly using Net::HTTP
+4. Passes raw JSON response to the configured `image_extractor`
+5. Extractor returns an `Image` instance that's merged into namespace
+
+**BAML Modular API (Ruby):**
+```ruby
+# Get raw request from BAML
+baml_req = Baml::Client.request.FunctionName(**input)
+
+# Execute manually
+uri = URI.parse(baml_req.url)
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = uri.scheme == "https"
+
+req = Net::HTTP::Post.new(uri.path)
+baml_req.headers.each { |k, v| req[k] = v }
+req.body = baml_req.body.json.to_json
+
+response = http.request(req)
+raw_json = JSON.parse(response.body)
+```
+
+**Configuration Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `function` | Yes | BAML function name |
+| `inputs` | No | Map BAML params to namespace fields |
+| `image_extractor` | Yes | Class/module with `.call(response)` returning Image |
+| `output_field` | No | Namespace field for extracted image (default: `:output_image`) |
+
+### Image Extractors
+
+Extractors parse raw LLM responses to extract image data.
+
+**GeminiImage Extractor:**
+```ruby
+module Brainpipe::Extractors::GeminiImage
+  def self.call(response)
+    parts = response.dig("candidates", 0, "content", "parts") || []
+
+    parts.each do |part|
+      if (data = part["inlineData"])
+        return Brainpipe::Image.from_base64(
+          data["data"],
+          mime_type: data["mimeType"]
+        )
+      end
+    end
+
+    nil
+  end
+end
+```
+
+**Custom Extractors:**
+```ruby
+module MyExtractor
+  def self.call(response)
+    base64_data = response.dig("output", "image_base64")
+    Brainpipe::Image.from_base64(base64_data, mime_type: "image/png")
+  end
+end
+```
 
 ---
 

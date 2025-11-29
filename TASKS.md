@@ -352,6 +352,175 @@
 
 ---
 
+---
+
+## Phase 14: Image Support
+
+### Task 14.1: Create Image type
+**File:** `lib/brainpipe/image.rb`
+
+- [ ] Implement `Brainpipe::Image` class
+  - [ ] `initialize(url: nil, base64: nil, mime_type: nil)`
+  - [ ] `self.from_url(url, mime_type: nil)`
+  - [ ] `self.from_base64(data, mime_type:)`
+  - [ ] `self.from_file(path)`
+  - [ ] `url?`, `base64?` predicates
+  - [ ] `url` accessor (raises if base64-only)
+  - [ ] `base64` accessor (lazy fetch from URL via Net::HTTP)
+  - [ ] `to_baml_image` conversion
+  - [ ] MIME type inference from file extensions
+  - [ ] Freeze after construction
+
+### Task 14.2: Add Image require
+**File:** `lib/brainpipe.rb`
+
+- [ ] Add `require_relative "brainpipe/image"`
+
+### Task 14.3: Test Image type
+**File:** `spec/brainpipe/image_spec.rb`
+
+- [ ] Test `.from_file` loads image and infers MIME type
+- [ ] Test `.from_url` stores URL without fetching
+- [ ] Test `.from_url` fetches base64 lazily
+- [ ] Test `.from_base64` stores data with MIME type
+- [ ] Test `#to_baml_image` converts to BAML Image type
+- [ ] Test instance is frozen after construction
+
+**Run:** `bundle exec rspec spec/brainpipe/image_spec.rb`
+
+---
+
+## Phase 15: Image Extractors
+
+### Task 15.1: Create extractors directory and GeminiImage extractor
+**File:** `lib/brainpipe/extractors/gemini_image.rb`
+
+- [ ] Create `Brainpipe::Extractors` module
+- [ ] Implement `GeminiImage.call(response)` that extracts image from Gemini response format
+
+### Task 15.2: Add extractor require
+**File:** `lib/brainpipe.rb`
+
+- [ ] Add `require_relative "brainpipe/extractors/gemini_image"`
+
+### Task 15.3: Test GeminiImage extractor
+**File:** `spec/brainpipe/extractors/gemini_image_spec.rb`
+
+- [ ] Test extracts image from valid Gemini response with inlineData
+- [ ] Test returns nil when no image in response
+- [ ] Test handles empty response gracefully
+- [ ] Test handles response with text-only parts
+
+**Run:** `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb`
+
+---
+
+## Phase 16: BamlRaw Operation
+
+### Task 16.1: Add IMAGE_EDIT capability
+**File:** `lib/brainpipe/capabilities.rb`
+
+- [ ] Add `IMAGE_EDIT = :image_edit` if not present
+- [ ] Add to `VALID_CAPABILITIES`
+
+### Task 16.2: Create BamlRaw operation
+**File:** `lib/brainpipe/operations/baml_raw.rb`
+
+- [ ] Accept options: `function`, `inputs`, `image_extractor`, `output_field`
+- [ ] Use BAML Modular API (`Baml::Client.request.FunctionName`) to build raw request
+- [ ] Execute HTTP request via Net::HTTP
+- [ ] Pass raw JSON response to extractor
+- [ ] Merge extracted image into namespace under `output_field`
+- [ ] Declare reads based on `inputs` mapping
+- [ ] Declare sets based on `output_field`
+
+### Task 16.3: Add BamlRaw require
+**File:** `lib/brainpipe.rb`
+
+- [ ] Add `require_relative "brainpipe/operations/baml_raw"`
+
+### Task 16.4: Test BamlRaw operation
+**File:** `spec/brainpipe/operations/baml_raw_spec.rb`
+
+- [ ] Test `#create` returns a callable
+- [ ] Test execution extracts image from mocked raw response
+- [ ] Test input mapping from namespace
+- [ ] Test output field configuration
+- [ ] Test error handling for failed HTTP requests
+- [ ] Test error handling when extractor returns nil
+
+**Run:** `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb`
+
+---
+
+## Phase 17: Image Fixer Example
+
+### Task 17.1: Create example directory structure
+```
+examples/image_fixer/
+├── baml_src/
+├── config/
+│   └── brainpipe/
+│       └── pipes/
+└── sample.jpg
+```
+
+### Task 17.2: Create BAML functions
+**File:** `examples/image_fixer/baml_src/image_fixer.baml`
+
+- [ ] Define `Problem` class
+- [ ] Define `ImageAnalysis` class
+- [ ] Define `AnalyzeImageProblems(img: image) -> ImageAnalysis`
+- [ ] Define `FixImageProblems(img: image, instructions: string) -> string`
+- [ ] Define client configurations for Gemini models
+
+### Task 17.3: Create model config
+**File:** `examples/image_fixer/config/brainpipe/config.yml`
+
+- [ ] Configure `gemini` model (gemini-2.0-flash)
+- [ ] Configure `gemini_flash_image` model (gemini-2.5-flash-preview-04-17)
+
+### Task 17.4: Create pipeline config
+**File:** `examples/image_fixer/config/brainpipe/pipes/image_fixer.yml`
+
+- [ ] Define `analyze` stage with Baml operation
+- [ ] Define `fix` stage with BamlRaw operation
+
+### Task 17.5: Create demo script
+**File:** `examples/image_fixer/run.rb`
+
+- [ ] Load Brainpipe configuration
+- [ ] Load input image from argument or default
+- [ ] Run pipeline
+- [ ] Print analysis results
+- [ ] Save fixed image to file
+
+### Task 17.6: Test example end-to-end
+**Manual test:**
+```bash
+cd examples/image_fixer
+export GOOGLE_AI_API_KEY=your-key
+ruby run.rb sample.jpg
+```
+
+- [ ] Verify analysis prints to console
+- [ ] Verify `fixed_sample.png` is created
+
+---
+
+## Phase Summary
+
+| Phase | Description | Test Command |
+|-------|-------------|--------------|
+| 14 | Image Type | `bundle exec rspec spec/brainpipe/image_spec.rb` |
+| 15 | Extractors | `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb` |
+| 16 | BamlRaw | `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb` |
+| 17 | Example | Manual: `ruby examples/image_fixer/run.rb` |
+
+**Full test suite:** `bundle exec rspec`
+
+---
+
 ## Final Tasks
 
 - [x] Review all public API for consistency
