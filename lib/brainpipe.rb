@@ -1,6 +1,7 @@
 require_relative "brainpipe/version"
 require_relative "brainpipe/errors"
 require_relative "brainpipe/namespace"
+require_relative "brainpipe/image"
 require_relative "brainpipe/types"
 require_relative "brainpipe/type_checker"
 require_relative "brainpipe/capabilities"

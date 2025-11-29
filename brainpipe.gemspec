@@ -24,6 +24,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "base64"
   spec.add_dependency "concurrent-ruby", "~> 1.2"
   spec.add_dependency "zeitwerk", "~> 2.6"
 end

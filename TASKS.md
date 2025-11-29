@@ -359,32 +359,32 @@
 ### Task 14.1: Create Image type
 **File:** `lib/brainpipe/image.rb`
 
-- [ ] Implement `Brainpipe::Image` class
-  - [ ] `initialize(url: nil, base64: nil, mime_type: nil)`
-  - [ ] `self.from_url(url, mime_type: nil)`
-  - [ ] `self.from_base64(data, mime_type:)`
-  - [ ] `self.from_file(path)`
-  - [ ] `url?`, `base64?` predicates
-  - [ ] `url` accessor (raises if base64-only)
-  - [ ] `base64` accessor (lazy fetch from URL via Net::HTTP)
-  - [ ] `to_baml_image` conversion
-  - [ ] MIME type inference from file extensions
-  - [ ] Freeze after construction
+- [x] Implement `Brainpipe::Image` class
+  - [x] `initialize(url: nil, base64: nil, mime_type: nil)`
+  - [x] `self.from_url(url, mime_type: nil)`
+  - [x] `self.from_base64(data, mime_type:)`
+  - [x] `self.from_file(path)`
+  - [x] `url?`, `base64?` predicates
+  - [x] `url` accessor (raises if base64-only)
+  - [x] `base64` accessor (lazy fetch from URL via Net::HTTP)
+  - [x] `to_baml_image` conversion
+  - [x] MIME type inference from file extensions
+  - [x] Freeze after construction
 
 ### Task 14.2: Add Image require
 **File:** `lib/brainpipe.rb`
 
-- [ ] Add `require_relative "brainpipe/image"`
+- [x] Add `require_relative "brainpipe/image"`
 
 ### Task 14.3: Test Image type
 **File:** `spec/brainpipe/image_spec.rb`
 
-- [ ] Test `.from_file` loads image and infers MIME type
-- [ ] Test `.from_url` stores URL without fetching
-- [ ] Test `.from_url` fetches base64 lazily
-- [ ] Test `.from_base64` stores data with MIME type
-- [ ] Test `#to_baml_image` converts to BAML Image type
-- [ ] Test instance is frozen after construction
+- [x] Test `.from_file` loads image and infers MIME type
+- [x] Test `.from_url` stores URL without fetching
+- [x] Test `.from_url` fetches base64 lazily
+- [x] Test `.from_base64` stores data with MIME type
+- [x] Test `#to_baml_image` converts to BAML Image type
+- [x] Test instance is frozen after construction
 
 **Run:** `bundle exec rspec spec/brainpipe/image_spec.rb`
 
@@ -510,12 +510,12 @@ ruby run.rb sample.jpg
 
 ## Phase Summary
 
-| Phase | Description | Test Command |
-|-------|-------------|--------------|
-| 14 | Image Type | `bundle exec rspec spec/brainpipe/image_spec.rb` |
-| 15 | Extractors | `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb` |
-| 16 | BamlRaw | `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb` |
-| 17 | Example | Manual: `ruby examples/image_fixer/run.rb` |
+| Phase | Description | Test Command                                                       |
+|-------|-------------|--------------------------------------------------------------------|
+| 14    | Image Type  | `bundle exec rspec spec/brainpipe/image_spec.rb`                   |
+| 15    | Extractors  | `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb` |
+| 16    | BamlRaw     | `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb`     |
+| 17    | Example     | Manual: `ruby examples/image_fixer/run.rb`                         |
 
 **Full test suite:** `bundle exec rspec`
 
@@ -523,10 +523,10 @@ ruby run.rb sample.jpg
 
 ## Final Tasks
 
-- [x] Review all public API for consistency
-- [x] Ensure all errors have useful messages
-- [x] Add YARD documentation to public methods
-- [x] Update README with usage examples
-- [x] Create CHANGELOG.md
+- [ ] Review all public API for consistency
+- [ ] Ensure all errors have useful messages
+- [ ] Add YARD documentation to public methods
+- [ ] Update README with usage examples
+- [ ] Update CHANGELOG.md
 - [x] Verify gemspec metadata
 - [x] Test gem installation from local build
