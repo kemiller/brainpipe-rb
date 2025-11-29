@@ -169,50 +169,6 @@ RSpec.describe Brainpipe::Image do
     end
   end
 
-  describe "#to_baml_image" do
-    context "when BAML is available" do
-      let(:mock_baml_image) { double("Baml::Image") }
-
-      before do
-        allow(Brainpipe::BamlAdapter).to receive(:available?).and_return(true)
-        allow(Brainpipe::BamlAdapter).to receive(:require_available!)
-        stub_const("Baml::Image", Class.new do
-          def self.from_url(url)
-            { type: :url, url: url }
-          end
-
-          def self.from_base64(mime_type, data)
-            { type: :base64, mime_type: mime_type, data: data }
-          end
-        end)
-      end
-
-      it "converts URL-based image to BAML Image" do
-        image = described_class.from_url("https://example.com/image.png")
-        result = image.to_baml_image
-        expect(result).to eq({ type: :url, url: "https://example.com/image.png" })
-      end
-
-      it "converts base64-based image to BAML Image" do
-        image = described_class.from_base64(encoded_data, mime_type: "image/png")
-        result = image.to_baml_image
-        expect(result).to eq({ type: :base64, mime_type: "image/png", data: encoded_data })
-      end
-    end
-
-    context "when BAML is not available" do
-      before do
-        allow(Brainpipe::BamlAdapter).to receive(:require_available!)
-          .and_raise(Brainpipe::ConfigurationError, "BAML is not available")
-      end
-
-      it "raises ConfigurationError" do
-        image = described_class.from_url("https://example.com/image.png")
-        expect { image.to_baml_image }.to raise_error(Brainpipe::ConfigurationError)
-      end
-    end
-  end
-
   describe "immutability" do
     it "freezes the instance after construction" do
       image = described_class.from_url("https://example.com/image.png")

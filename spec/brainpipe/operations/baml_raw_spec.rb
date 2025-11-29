@@ -62,6 +62,8 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       allow(Brainpipe::BamlAdapter).to receive(:function).with(:FixImage).and_return(mock_baml_function)
       allow(Brainpipe::BamlAdapter).to receive(:function).with(:GenerateImage).and_return(mock_baml_function)
       allow(Brainpipe::BamlAdapter).to receive(:baml_client).and_return(mock_client)
+      allow(Brainpipe::BamlAdapter).to receive(:to_baml_image).and_return(double("BamlImage"))
+      allow(Brainpipe::BamlAdapter).to receive(:build_client_registry).and_return(nil)
       allow(mock_client).to receive(:request).and_return(mock_request_builder)
     end
 
@@ -262,7 +264,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
           output_field: :fixed_image
         })
 
-        source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+        source_image = double("Image")
 
         namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
         callable = op.create
@@ -282,7 +284,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
           inputs: { img: :source_image }
         })
 
-        source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+        source_image = double("Image")
 
         namespaces = [Brainpipe::Namespace.new(source_image: source_image, other: "preserved")]
         callable = op.create
@@ -300,8 +302,8 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
           inputs: { img: :source_image }
         })
 
-        source_image1 = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage1"))
-        source_image2 = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage2"))
+        source_image1 = double("Image1")
+        source_image2 = double("Image2")
 
         namespaces = [
           Brainpipe::Namespace.new(source_image: source_image1),
@@ -338,7 +340,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
             inputs: { img: :source_image }
           })
 
-          source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+          source_image = double("Image")
           namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
           callable = op.create
 
@@ -358,7 +360,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
             output_field: :edited_image
           })
 
-          source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+          source_image = double("Image")
 
           namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
           callable = op.create
@@ -400,6 +402,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
           allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
           allow(response).to receive(:code).and_return("500")
           allow(response).to receive(:message).and_return("Internal Server Error")
+          allow(response).to receive(:body).and_return('{"error": "Server Error"}')
           response
         end
 
@@ -415,7 +418,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
             inputs: { img: :source_image }
           })
 
-          source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+          source_image = double("Image")
 
           namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
           callable = op.create
@@ -449,7 +452,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
             inputs: { img: :source_image }
           })
 
-          source_image = instance_double(Brainpipe::Image, to_baml_image: double("BamlImage"))
+          source_image = double("Image")
 
           namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
           callable = op.create

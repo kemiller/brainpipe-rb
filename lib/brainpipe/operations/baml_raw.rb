@@ -207,7 +207,9 @@ module Brainpipe
         raw_text = response.body
         raw_json = JSON.parse(raw_text) rescue nil
 
-        { raw_text: raw_text, raw_json: raw_json }
+        parsed = raw_request.respond_to?(:parse) ? raw_request.parse(raw_text) : nil
+
+        { raw_text: raw_text, raw_json: raw_json, parsed: parsed }
       end
     end
   end

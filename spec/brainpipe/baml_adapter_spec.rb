@@ -35,6 +35,100 @@ RSpec.describe Brainpipe::BamlAdapter do
       expect(described_class.instance_variable_get(:@available)).to be_nil
     end
   end
+
+  describe ".to_baml_image" do
+    context "when BAML is available" do
+      before do
+        allow(described_class).to receive(:require_available!)
+        stub_const("Baml::Image", Class.new do
+          def self.from_url(url)
+            { type: :url, url: url }
+          end
+
+          def self.from_base64(mime_type, data)
+            { type: :base64, mime_type: mime_type, data: data }
+          end
+        end)
+      end
+
+      it "converts URL-based image to BAML Image" do
+        image = Brainpipe::Image.from_url("https://example.com/image.png")
+        result = described_class.to_baml_image(image)
+        expect(result).to eq({ type: :url, url: "https://example.com/image.png" })
+      end
+
+      it "converts base64-based image to BAML Image" do
+        image = Brainpipe::Image.from_base64("aGVsbG8=", mime_type: "image/png")
+        result = described_class.to_baml_image(image)
+        expect(result).to eq({ type: :base64, mime_type: "image/png", data: "aGVsbG8=" })
+      end
+    end
+
+    context "when BAML is not available" do
+      it "raises ConfigurationError" do
+        image = Brainpipe::Image.from_url("https://example.com/image.png")
+        expect { described_class.to_baml_image(image) }
+          .to raise_error(Brainpipe::ConfigurationError, /BAML is not available/)
+      end
+    end
+  end
+
+  describe ".build_client_registry" do
+    it "returns nil when model_config is nil" do
+      expect(described_class.build_client_registry(nil)).to be_nil
+    end
+
+    it "raises ConfigurationError when BAML is not available" do
+      config = Brainpipe::ModelConfig.new(
+        name: :default,
+        provider: :openai,
+        model: "gpt-4o",
+        capabilities: [:text_to_text]
+      )
+      expect { described_class.build_client_registry(config) }
+        .to raise_error(Brainpipe::ConfigurationError, /BAML is not available/)
+    end
+  end
+
+  describe ".build_client_hash (via build_client_registry internals)" do
+    let(:config) do
+      Brainpipe::ModelConfig.new(
+        name: :default,
+        provider: :openai,
+        model: "gpt-4o",
+        capabilities: [:text_to_text],
+        options: { api_key: "test-key" }
+      )
+    end
+
+    let(:config_with_options) do
+      Brainpipe::ModelConfig.new(
+        name: :default,
+        provider: :openai,
+        model: "gpt-4o",
+        capabilities: [:text_to_text],
+        options: {
+          api_key: "test-key",
+          base_url: "https://api.example.com",
+          temperature: 0.7,
+          max_tokens: 1000
+        }
+      )
+    end
+
+    it "builds client hash with model and api_key" do
+      client = described_class.send(:build_client_hash, config)
+      expect(client["model"]).to eq("gpt-4o")
+      expect(client["api_key"]).to eq("test-key")
+    end
+
+    it "includes optional settings when provided" do
+      client = described_class.send(:build_client_hash, config_with_options)
+      expect(client["base_url"]).to eq("https://api.example.com")
+      expect(client["temperature"]).to eq(0.7)
+      expect(client["max_tokens"]).to eq(1000)
+    end
+  end
 end
 
 RSpec.describe Brainpipe::BamlFunction do
