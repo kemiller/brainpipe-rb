@@ -1,0 +1,21 @@
+models:
+  gemini:
+    provider: google-ai
+    model: gemini-2.0-flash
+    capabilities:
+      - text_to_text
+      - image_to_text
+    options:
+      api_key: ${GOOGLE_AI_API_KEY}
+
+  gemini_flash_image:
+    provider: google-ai
+    model: gemini-2.0-flash-exp
+    capabilities:
+      - image_edit
+    options:
+      api_key: ${GOOGLE_AI_API_KEY}
+      generation_config:
+        responseModalities:
+          - TEXT
+          - IMAGE

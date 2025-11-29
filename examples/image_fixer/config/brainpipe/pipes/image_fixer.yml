@@ -1,0 +1,28 @@
+name: image_fixer
+
+stages:
+  - name: analyze
+    mode: merge
+    operations:
+      - type: Brainpipe::Operations::Baml
+        model: gemini
+        options:
+          function: AnalyzeImageProblems
+          inputs:
+            img: input_image
+          outputs:
+            problems: problems
+            fix_instructions: fix_instructions
+
+  - name: fix
+    mode: merge
+    operations:
+      - type: Brainpipe::Operations::BamlRaw
+        model: gemini_flash_image
+        options:
+          function: FixImageProblems
+          inputs:
+            img: input_image
+            instructions: fix_instructions
+          image_extractor: gemini_image
+          output_field: fixed_image

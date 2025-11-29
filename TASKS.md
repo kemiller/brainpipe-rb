@@ -465,46 +465,48 @@ examples/image_fixer/
 └── sample.jpg
 ```
 
-### Task 17.2: Create BAML functions
-**File:** `examples/image_fixer/baml_src/image_fixer.baml`
+- [x] Directory structure created
 
-- [ ] Define `Problem` class
-- [ ] Define `ImageAnalysis` class
-- [ ] Define `AnalyzeImageProblems(img: image) -> ImageAnalysis`
-- [ ] Define `FixImageProblems(img: image, instructions: string) -> string`
-- [ ] Define client configurations for Gemini models
+### Task 17.2: Create BAML functions
+**File:** `examples/image_fixer/baml_src/main.baml`
+
+- [x] Define `Problem` class
+- [x] Define `ImageAnalysis` class
+- [x] Define `AnalyzeImageProblems(img: image) -> ImageAnalysis`
+- [x] Define `FixImageProblems(img: image, instructions: string) -> string`
+- [x] Define client configurations for Gemini models
 
 ### Task 17.3: Create model config
 **File:** `examples/image_fixer/config/brainpipe/config.yml`
 
-- [ ] Configure `gemini` model (gemini-2.0-flash)
-- [ ] Configure `gemini_flash_image` model (gemini-2.5-flash-preview-04-17)
+- [x] Configure `gemini` model (gemini-2.0-flash)
+- [x] Configure `gemini_flash_image` model (gemini-2.0-flash-exp with generation_config)
 
 ### Task 17.4: Create pipeline config
 **File:** `examples/image_fixer/config/brainpipe/pipes/image_fixer.yml`
 
-- [ ] Define `analyze` stage with Baml operation
-- [ ] Define `fix` stage with BamlRaw operation
+- [x] Define `analyze` stage with Baml operation
+- [x] Define `fix` stage with BamlRaw operation
 
 ### Task 17.5: Create demo script
 **File:** `examples/image_fixer/run.rb`
 
-- [ ] Load Brainpipe configuration
-- [ ] Load input image from argument or default
-- [ ] Run pipeline
-- [ ] Print analysis results
-- [ ] Save fixed image to file
+- [x] Load Brainpipe configuration
+- [x] Load input image from argument or default
+- [x] Run pipeline
+- [x] Print analysis results
+- [x] Save fixed image to file
 
 ### Task 17.6: Test example end-to-end
 **Manual test:**
 ```bash
 cd examples/image_fixer
 export GOOGLE_AI_API_KEY=your-key
-ruby run.rb sample.jpg
+bundle exec ruby run.rb
 ```
 
-- [ ] Verify analysis prints to console
-- [ ] Verify `fixed_sample.png` is created
+- [x] Verify analysis prints to console
+- [x] Verify `fixed_sample.png` is created
 
 ---
 

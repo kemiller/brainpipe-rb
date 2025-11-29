@@ -36,7 +36,7 @@ module Brainpipe
 
       def find_baml_client
         if defined?(::Baml) && ::Baml.respond_to?(:Client)
-          ::Baml::Client
+          ::Baml.Client
         elsif defined?(::B)
           ::B
         else

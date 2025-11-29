@@ -1,6 +1,7 @@
 require "net/http"
 require "json"
 require "uri"
+require "openssl"
 
 module Brainpipe
   module Operations
@@ -187,23 +188,26 @@ module Brainpipe
 
         uri = URI.parse(url)
         http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = uri.scheme == "https"
+        if uri.scheme == "https"
+          http.use_ssl = true
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+          http.verify_callback = ->(_preverify_ok, _store_ctx) { true }
+        end
 
         request = Net::HTTP::Post.new(uri.request_uri)
         headers.each { |k, v| request[k] = v }
-        request.body = body.is_a?(String) ? body : body.to_json
+        request.body = body.respond_to?(:text) ? body.text : body.to_s
 
         response = http.request(request)
 
         unless response.is_a?(Net::HTTPSuccess)
-          raise ExecutionError, "HTTP request failed: #{response.code} #{response.message}"
+          raise ExecutionError, "HTTP request failed: #{response.code} #{response.message}\n#{response.body}"
         end
 
         raw_text = response.body
-        parsed_output = raw_request.parse(raw_text)
         raw_json = JSON.parse(raw_text) rescue nil
 
-        { raw_text: raw_text, raw_json: raw_json, parsed: parsed_output }
+        { raw_text: raw_text, raw_json: raw_json }
       end
     end
   end

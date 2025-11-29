@@ -271,13 +271,21 @@ module Brainpipe
             pipe_name: pipe_name
           )
           { operation: operation, result: executor.call(namespaces.map(&:dup)) }
-        rescue => e
+        rescue Exception => e
           errors << e
           { operation: operation, error: e }
         end
       end
 
-      results = futures.map(&:value)
+      results = futures.map do |future|
+        future.wait
+        if future.rejected?
+          errors << future.reason unless errors.include?(future.reason)
+          { operation: nil, error: future.reason }
+        else
+          future.value || { operation: nil, error: ExecutionError.new("Future completed with nil value") }
+        end
+      end
       pool.shutdown
       pool.wait_for_termination
 

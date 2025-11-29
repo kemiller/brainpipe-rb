@@ -76,15 +76,24 @@ module Brainpipe
         if mapping.empty?
           input = {}
           baml_function.input_schema.each_key do |field|
-            input[field] = namespace[field]
+            input[field] = convert_for_baml(namespace[field])
           end
           input
         else
           input = {}
           mapping.each do |baml_field, ns_field|
-            input[baml_field.to_sym] = namespace[ns_field.to_sym]
+            input[baml_field.to_sym] = convert_for_baml(namespace[ns_field.to_sym])
           end
           input
+        end
+      end
+
+      def convert_for_baml(value)
+        case value
+        when Brainpipe::Image
+          value.to_baml_image
+        else
+          value
         end
       end
 

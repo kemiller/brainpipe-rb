@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+
+gem "brainpipe", path: "../.."
+gem "baml", "0.90.2"
+gem "sorbet-runtime"
+
