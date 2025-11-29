@@ -420,34 +420,34 @@
 ### Task 16.1: Add IMAGE_EDIT capability
 **File:** `lib/brainpipe/capabilities.rb`
 
-- [ ] Add `IMAGE_EDIT = :image_edit` if not present
-- [ ] Add to `VALID_CAPABILITIES`
+- [x] Add `IMAGE_EDIT = :image_edit` if not present
+- [x] Add to `VALID_CAPABILITIES`
 
 ### Task 16.2: Create BamlRaw operation
 **File:** `lib/brainpipe/operations/baml_raw.rb`
 
-- [ ] Accept options: `function`, `inputs`, `image_extractor`, `output_field`
-- [ ] Use BAML Modular API (`Baml::Client.request.FunctionName`) to build raw request
-- [ ] Execute HTTP request via Net::HTTP
-- [ ] Pass raw JSON response to extractor
-- [ ] Merge extracted image into namespace under `output_field`
-- [ ] Declare reads based on `inputs` mapping
-- [ ] Declare sets based on `output_field`
+- [x] Accept options: `function`, `inputs`, `image_extractor`, `output_field`
+- [x] Use BAML Modular API (`Baml::Client.request.FunctionName`) to build raw request
+- [x] Execute HTTP request via Net::HTTP
+- [x] Pass raw JSON response to extractor
+- [x] Merge extracted image into namespace under `output_field`
+- [x] Declare reads based on `inputs` mapping
+- [x] Declare sets based on `output_field`
 
 ### Task 16.3: Add BamlRaw require
 **File:** `lib/brainpipe.rb`
 
-- [ ] Add `require_relative "brainpipe/operations/baml_raw"`
+- [x] Add `require_relative "brainpipe/operations/baml_raw"`
 
 ### Task 16.4: Test BamlRaw operation
 **File:** `spec/brainpipe/operations/baml_raw_spec.rb`
 
-- [ ] Test `#create` returns a callable
-- [ ] Test execution extracts image from mocked raw response
-- [ ] Test input mapping from namespace
-- [ ] Test output field configuration
-- [ ] Test error handling for failed HTTP requests
-- [ ] Test error handling when extractor returns nil
+- [x] Test `#create` returns a callable
+- [x] Test execution extracts image from mocked raw response
+- [x] Test input mapping from namespace
+- [x] Test output field configuration
+- [x] Test error handling for failed HTTP requests
+- [x] Test error handling when extractor returns nil
 
 **Run:** `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb`
 
