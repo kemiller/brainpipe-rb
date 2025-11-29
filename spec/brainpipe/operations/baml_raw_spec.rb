@@ -7,19 +7,12 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
     it "raises ConfigurationError without function option" do
       allow(Brainpipe::BamlAdapter).to receive(:require_available!)
 
-      expect { described_class.new(options: { image_extractor: :gemini_image }) }
+      expect { described_class.new(options: {}) }
         .to raise_error(Brainpipe::ConfigurationError, /requires 'function' option/)
     end
 
-    it "raises ConfigurationError without image_extractor option" do
-      allow(Brainpipe::BamlAdapter).to receive(:require_available!)
-
-      expect { described_class.new(options: { function: :test }) }
-        .to raise_error(Brainpipe::ConfigurationError, /requires 'image_extractor' option/)
-    end
-
     it "raises ConfigurationError when BAML is not available" do
-      expect { described_class.new(options: { function: :test, image_extractor: :gemini_image }) }
+      expect { described_class.new(options: { function: :test }) }
         .to raise_error(Brainpipe::ConfigurationError, /BAML is not available/)
     end
   end
@@ -57,6 +50,15 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       request
     end
 
+    let(:model_config) do
+      Brainpipe::ModelConfig.new(
+        name: :gemini_image_edit,
+        provider: :google_ai,
+        model: "gemini-2.0-flash",
+        capabilities: [:image_edit]
+      )
+    end
+
     before do
       allow(Brainpipe::BamlAdapter).to receive(:require_available!)
       allow(Brainpipe::BamlAdapter).to receive(:function).with(:FixImage).and_return(mock_baml_function)
@@ -68,54 +70,9 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
     end
 
     describe "#initialize" do
-      it "accepts function and extractor options" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image
-        })
+      it "accepts function option" do
+        op = described_class.new(options: { function: :FixImage })
         expect(op).to be_a(described_class)
-      end
-
-      it "resolves extractor from symbol name" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image
-        })
-        expect(op).to be_a(described_class)
-      end
-
-      it "resolves extractor from string name" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: "gemini_image"
-        })
-        expect(op).to be_a(described_class)
-      end
-
-      it "accepts module as extractor" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: Brainpipe::Extractors::GeminiImage
-        })
-        expect(op).to be_a(described_class)
-      end
-
-      it "accepts proc as extractor" do
-        extractor = ->(response) { nil }
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: extractor
-        })
-        expect(op).to be_a(described_class)
-      end
-
-      it "raises error for unknown extractor" do
-        expect {
-          described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :unknown_extractor
-          })
-        }.to raise_error(Brainpipe::ConfigurationError, /Unknown extractor/)
       end
     end
 
@@ -123,7 +80,6 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       it "returns reads based on input mapping" do
         op = described_class.new(options: {
           function: :FixImage,
-          image_extractor: :gemini_image,
           inputs: { img: :source_image, instructions: :fix_prompt }
         })
 
@@ -134,7 +90,6 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       it "looks up types from prefix_schema" do
         op = described_class.new(options: {
           function: :FixImage,
-          image_extractor: :gemini_image,
           inputs: { img: :source_image }
         })
 
@@ -149,7 +104,6 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       it "returns output_field with Image type" do
         op = described_class.new(options: {
           function: :FixImage,
-          image_extractor: :gemini_image,
           output_field: :result_image
         })
 
@@ -159,8 +113,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
 
       it "defaults output_field to :image" do
         op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image
+          function: :FixImage
         })
 
         sets = op.declared_sets
@@ -182,10 +135,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
         end
 
         it "includes BAML output schema in declared_sets" do
-          op = described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :gemini_image
-          })
+          op = described_class.new(options: { function: :FixImage })
 
           sets = op.declared_sets
           expect(sets[:image]).to eq({ type: Brainpipe::Image, optional: false })
@@ -196,20 +146,14 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
 
     describe "#declared_deletes" do
       it "returns empty array" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image
-        })
+        op = described_class.new(options: { function: :FixImage })
         expect(op.declared_deletes).to eq([])
       end
     end
 
     describe "#required_model_capability" do
       it "requires image_edit capability" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image
-        })
+        op = described_class.new(options: { function: :FixImage })
         expect(op.required_model_capability).to eq(:image_edit)
       end
     end
@@ -247,22 +191,26 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       end
 
       it "returns a callable" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image,
-          inputs: { img: :source_image }
-        })
+        op = described_class.new(
+          model: model_config,
+          options: {
+            function: :FixImage,
+            inputs: { img: :source_image }
+          }
+        )
 
         expect(op.create).to respond_to(:call)
       end
 
-      it "extracts image from raw response using BAML parse" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image,
-          inputs: { img: :source_image },
-          output_field: :fixed_image
-        })
+      it "extracts image from raw response using provider adapter" do
+        op = described_class.new(
+          model: model_config,
+          options: {
+            function: :FixImage,
+            inputs: { img: :source_image },
+            output_field: :fixed_image
+          }
+        )
 
         source_image = double("Image")
 
@@ -278,11 +226,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       end
 
       it "preserves other namespace fields" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image,
-          inputs: { img: :source_image }
-        })
+        op = described_class.new(
+          model: model_config,
+          options: {
+            function: :FixImage,
+            inputs: { img: :source_image }
+          }
+        )
 
         source_image = double("Image")
 
@@ -296,11 +246,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
       end
 
       it "processes multiple namespaces" do
-        op = described_class.new(options: {
-          function: :FixImage,
-          image_extractor: :gemini_image,
-          inputs: { img: :source_image }
-        })
+        op = described_class.new(
+          model: model_config,
+          options: {
+            function: :FixImage,
+            inputs: { img: :source_image }
+          }
+        )
 
         source_image1 = double("Image1")
         source_image2 = double("Image2")
@@ -334,11 +286,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
         end
 
         it "merges BAML parsed output into namespace" do
-          op = described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :gemini_image,
-            inputs: { img: :source_image }
-          })
+          op = described_class.new(
+            model: model_config,
+            options: {
+              function: :FixImage,
+              inputs: { img: :source_image }
+            }
+          )
 
           source_image = double("Image")
           namespaces = [Brainpipe::Namespace.new(source_image: source_image)]
@@ -353,12 +307,14 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
 
       context "with custom output field" do
         it "sets result under configured field name" do
-          op = described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :gemini_image,
-            inputs: { img: :source_image },
-            output_field: :edited_image
-          })
+          op = described_class.new(
+            model: model_config,
+            options: {
+              function: :FixImage,
+              inputs: { img: :source_image },
+              output_field: :edited_image
+            }
+          )
 
           source_image = double("Image")
 
@@ -379,11 +335,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
             mock_raw_request
           end
 
-          op = described_class.new(options: {
-            function: :GenerateImage,
-            image_extractor: :gemini_image,
-            inputs: { prompt: :user_prompt, style: :image_style }
-          })
+          op = described_class.new(
+            model: model_config,
+            options: {
+              function: :GenerateImage,
+              inputs: { prompt: :user_prompt, style: :image_style }
+            }
+          )
 
           namespaces = [Brainpipe::Namespace.new(user_prompt: "a cat", image_style: "realistic")]
           callable = op.create
@@ -412,11 +370,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
         end
 
         it "raises ExecutionError" do
-          op = described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :gemini_image,
-            inputs: { img: :source_image }
-          })
+          op = described_class.new(
+            model: model_config,
+            options: {
+              function: :FixImage,
+              inputs: { img: :source_image }
+            }
+          )
 
           source_image = double("Image")
 
@@ -428,7 +388,7 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
         end
       end
 
-      context "when extractor returns nil" do
+      context "when no image found in response" do
         let(:empty_response) do
           { "candidates" => [] }
         end
@@ -446,11 +406,13 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
         end
 
         it "raises ExecutionError" do
-          op = described_class.new(options: {
-            function: :FixImage,
-            image_extractor: :gemini_image,
-            inputs: { img: :source_image }
-          })
+          op = described_class.new(
+            model: model_config,
+            options: {
+              function: :FixImage,
+              inputs: { img: :source_image }
+            }
+          )
 
           source_image = double("Image")
 
@@ -458,28 +420,16 @@ RSpec.describe Brainpipe::Operations::BamlRaw do
           callable = op.create
 
           expect { callable.call(namespaces) }
-            .to raise_error(Brainpipe::ExecutionError, /Extractor returned nil/)
+            .to raise_error(Brainpipe::ExecutionError, /No image found/)
         end
       end
     end
 
     describe "with model" do
-      let(:model_config) do
-        Brainpipe::ModelConfig.new(
-          name: :gemini_image_edit,
-          provider: :google_ai,
-          model: "gemini-2.0-flash",
-          capabilities: [:image_edit]
-        )
-      end
-
       it "passes model to operation" do
         op = described_class.new(
           model: model_config,
-          options: {
-            function: :FixImage,
-            image_extractor: :gemini_image
-          }
+          options: { function: :FixImage }
         )
         expect(op.model).to eq(model_config)
       end

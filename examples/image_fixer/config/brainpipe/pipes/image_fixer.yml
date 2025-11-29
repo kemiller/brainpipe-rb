@@ -24,5 +24,4 @@ stages:
           inputs:
             img: input_image
             instructions: fix_instructions
-          image_extractor: gemini_image
           output_field: fixed_image

@@ -26,5 +26,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "base64"
   spec.add_dependency "concurrent-ruby", "~> 1.2"
+  spec.add_dependency "mustache", "~> 1.0"
   spec.add_dependency "zeitwerk", "~> 2.6"
 end

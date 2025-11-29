@@ -515,11 +515,15 @@ bundle exec ruby run.rb
 | Phase | Description | Test Command                                                       |
 |-------|-------------|--------------------------------------------------------------------|
 | 14    | Image Type  | `bundle exec rspec spec/brainpipe/image_spec.rb`                   |
-| 15    | Extractors  | `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb` |
+| 15    | Extractors  | *(Superseded by Phase 18 - consolidated into Provider Adapters)*   |
 | 16    | BamlRaw     | `bundle exec rspec spec/brainpipe/operations/baml_raw_spec.rb`     |
 | 17    | Example     | Manual: `ruby examples/image_fixer/run.rb`                         |
 
 **Full test suite:** `bundle exec rspec`
+
+> **Note:** Phase 15 (Image Extractors) was superseded by Phase 18 (Provider Adapters).
+> Image extraction logic is now consolidated into provider adapters via `adapter.extract_image(response)`.
+> The separate `Extractors` module and `image_extractor` option have been removed.
 
 ---
 
@@ -627,64 +631,62 @@ bundle exec ruby run.rb
 ### Task 19.1: Add mustache dependency
 **File:** `brainpipe.gemspec`
 
-- [ ] Add `spec.add_dependency "mustache", "~> 1.0"`
+- [x] Add `spec.add_dependency "mustache", "~> 1.0"`
 
 ### Task 19.2: Create LlmCall operation
 **File:** `lib/brainpipe/operations/llm_call.rb`
 
-- [ ] `initialize(model: nil, options: {})`
-  - [ ] Load template from `prompt` or `prompt_file`
-  - [ ] Store `capability`, `inputs`, `outputs`
-  - [ ] Resolve optional `image_extractor` override
-  - [ ] Set `json_mode` default based on output types
-- [ ] `required_model_capability` - returns `@capability`
-- [ ] `declared_reads(prefix_schema = {})` - returns `@input_types`
-- [ ] `declared_sets(prefix_schema = {})` - returns `@output_types`
-- [ ] `create` - returns callable that:
-  - [ ] Gets adapter via `ProviderAdapters.for(model_config.provider)`
-  - [ ] Builds context from namespace (images marked as placeholders)
-  - [ ] Extracts images from namespace
-  - [ ] Renders template with `Mustache.render(template, context)`
-  - [ ] Calls `adapter.call(prompt:, model_config:, images:, json_mode:)`
-  - [ ] For image outputs: uses override extractor or `adapter.extract_image`
-  - [ ] For text outputs: parses JSON, validates, merges into namespace
+- [x] `initialize(model: nil, options: {})`
+  - [x] Load template from `prompt` or `prompt_file`
+  - [x] Store `capability`, `inputs`, `outputs`
+  - [x] Set `json_mode` default based on output types
+- [x] `required_model_capability` - returns `@capability`
+- [x] `declared_reads(prefix_schema = {})` - returns `@input_types`
+- [x] `declared_sets(prefix_schema = {})` - returns `@output_types`
+- [x] `create` - returns callable that:
+  - [x] Gets adapter via `ProviderAdapters.for(model_config.provider)`
+  - [x] Builds context from namespace (images marked as placeholders)
+  - [x] Extracts images from namespace
+  - [x] Renders template with `Mustache.render(template, context)`
+  - [x] Calls `adapter.call(prompt:, model_config:, images:, json_mode:)`
+  - [x] For image outputs: uses `adapter.extract_image`
+  - [x] For text outputs: parses JSON, validates, merges into namespace
 
 ### Task 19.3: Add template loading
 **File:** `lib/brainpipe/operations/llm_call.rb`
 
-- [ ] `load_template(options)` private method
-  - [ ] If `prompt` key, return string directly
-  - [ ] If `prompt_file` key, read file relative to config path
-  - [ ] Raise ConfigurationError if neither present
+- [x] `load_template(options)` private method
+  - [x] If `prompt` key, return string directly
+  - [x] If `prompt_file` key, read file relative to config path
+  - [x] Raise ConfigurationError if neither present
 
 ### Task 19.4: Add LlmCall require
 **File:** `lib/brainpipe.rb`
 
-- [ ] Add `require "mustache"` (guarded or in operation file)
-- [ ] Add `require_relative "brainpipe/operations/llm_call"`
+- [x] Add `require "mustache"` (guarded or in operation file)
+- [x] Add `require_relative "brainpipe/operations/llm_call"`
 
 ### Task 19.5: Update loader for LlmCall
 **File:** `lib/brainpipe/loader.rb`
 
-- [ ] Ensure `Brainpipe::Operations::LlmCall` is resolvable
-- [ ] Validate `capability` is present and valid
-- [ ] Validate model has required capability
+- [x] Ensure `Brainpipe::Operations::LlmCall` is resolvable
+- [x] Validate `capability` is present and valid
+- [x] Validate model has required capability
 
 ### Task 19.6: Test LlmCall operation
 **File:** `spec/brainpipe/operations/llm_call_spec.rb`
 
-- [ ] Test `required_model_capability` returns configured capability
-- [ ] Test `declared_reads` returns input types
-- [ ] Test `declared_sets` returns output types
-- [ ] Test template loading from inline `prompt`
-- [ ] Test template loading from `prompt_file`
-- [ ] Test Mustache interpolation of variables
-- [ ] Test Mustache section iteration for arrays
-- [ ] Test image input handling (placeholder in context, extracted separately)
-- [ ] Test text output parsing and validation
-- [ ] Test image output extraction via adapter
-- [ ] Test image output extraction via override extractor
-- [ ] Test json_mode default behavior
+- [x] Test `required_model_capability` returns configured capability
+- [x] Test `declared_reads` returns input types
+- [x] Test `declared_sets` returns output types
+- [x] Test template loading from inline `prompt`
+- [x] Test template loading from `prompt_file`
+- [x] Test Mustache interpolation of variables
+- [x] Test Mustache section iteration for arrays
+- [x] Test image input handling (placeholder in context, extracted separately)
+- [x] Test text output parsing and validation
+- [x] Test image output extraction via adapter
+- [x] Test json_mode default behavior
 
 **Run:** `bundle exec rspec spec/brainpipe/operations/llm_call_spec.rb`
 

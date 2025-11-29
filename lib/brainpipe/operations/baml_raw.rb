@@ -12,11 +12,9 @@ module Brainpipe
         @function_name = options[:function]&.to_sym
         @input_mapping = options[:inputs] || {}
         @output_mapping = options[:outputs] || {}
-        @extractor = resolve_extractor(options[:image_extractor])
         @output_field = (options[:output_field] || :image).to_sym
 
         raise ConfigurationError, "BamlRaw operation requires 'function' option" unless @function_name
-        raise ConfigurationError, "BamlRaw operation requires 'image_extractor' option" unless @extractor
 
         BamlAdapter.require_available!
         @baml_function = BamlAdapter.function(@function_name)
@@ -60,7 +58,6 @@ module Brainpipe
         function_name = @function_name
         input_mapping = @input_mapping
         output_mapping = @output_mapping
-        extractor = @extractor
         output_field = @output_field
         model_config = @model
 
@@ -70,9 +67,11 @@ module Brainpipe
             client_registry = BamlAdapter.build_client_registry(model_config)
 
             result = execute_raw_request(function_name, input, client_registry)
-            image = extractor.call(result[:raw_json])
 
-            raise ExecutionError, "Extractor returned nil - no image found in response" unless image
+            adapter = ProviderAdapters.for(model_config.provider)
+            image = adapter.extract_image(result[:raw_json])
+
+            raise ExecutionError, "No image found in response" unless image
 
             output = build_output(result[:parsed], output_mapping)
             output[output_field] = image
@@ -83,44 +82,6 @@ module Brainpipe
       end
 
       private
-
-      def resolve_extractor(extractor_option)
-        case extractor_option
-        when nil
-          nil
-        when Symbol, String
-          find_extractor_by_name(extractor_option.to_s)
-        when Module, Class
-          extractor_option
-        when Proc
-          extractor_option
-        else
-          raise ConfigurationError, "Invalid image_extractor: must be a name, module, or callable"
-        end
-      end
-
-      def find_extractor_by_name(name)
-        extractor_name = camelize(name)
-        if Brainpipe::Extractors.const_defined?(extractor_name)
-          Brainpipe::Extractors.const_get(extractor_name)
-        else
-          raise ConfigurationError, "Unknown extractor: #{name}. Available: #{available_extractors.join(', ')}"
-        end
-      end
-
-      def available_extractors
-        Brainpipe::Extractors.constants.map { |c| underscore(c.to_s) }
-      end
-
-      def camelize(str)
-        str.to_s.split("_").map(&:capitalize).join
-      end
-
-      def underscore(str)
-        str.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-           .downcase
-      end
 
       def build_input(namespace, mapping)
         input = {}
