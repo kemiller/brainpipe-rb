@@ -395,21 +395,21 @@
 ### Task 15.1: Create extractors directory and GeminiImage extractor
 **File:** `lib/brainpipe/extractors/gemini_image.rb`
 
-- [ ] Create `Brainpipe::Extractors` module
-- [ ] Implement `GeminiImage.call(response)` that extracts image from Gemini response format
+- [x] Create `Brainpipe::Extractors` module
+- [x] Implement `GeminiImage.call(response)` that extracts image from Gemini response format
 
 ### Task 15.2: Add extractor require
 **File:** `lib/brainpipe.rb`
 
-- [ ] Add `require_relative "brainpipe/extractors/gemini_image"`
+- [x] Add `require_relative "brainpipe/extractors/gemini_image"`
 
 ### Task 15.3: Test GeminiImage extractor
 **File:** `spec/brainpipe/extractors/gemini_image_spec.rb`
 
-- [ ] Test extracts image from valid Gemini response with inlineData
-- [ ] Test returns nil when no image in response
-- [ ] Test handles empty response gracefully
-- [ ] Test handles response with text-only parts
+- [x] Test extracts image from valid Gemini response with inlineData
+- [x] Test returns nil when no image in response
+- [x] Test handles empty response gracefully
+- [x] Test handles response with text-only parts
 
 **Run:** `bundle exec rspec spec/brainpipe/extractors/gemini_image_spec.rb`
 
