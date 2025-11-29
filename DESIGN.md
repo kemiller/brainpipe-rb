@@ -371,6 +371,305 @@ module MyExtractor
 end
 ```
 
+### LlmCall Operation
+
+For direct LLM calls without BAML, using Mustache templates with variable interpolation. Provider-agnostic with automatic adapter selection. Supports all capability types including multimodal (image input/output).
+
+**Text-to-Text Example:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::LlmCall
+    model: gemini
+    options:
+      capability: text_to_text
+      prompt: |
+        Analyze this text and extract key entities.
+
+        Text: {{{ input_text }}}
+
+        Return a JSON object with:
+        - entities: array of {name, type, confidence}
+        - summary: brief summary string
+      inputs:
+        input_text: String
+      outputs:
+        entities: [{ name: String, type: String, confidence: Float }]
+        summary: String
+```
+
+**Image-to-Text (Vision) Example:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::LlmCall
+    model: gpt4_vision
+    options:
+      capability: image_to_text
+      prompt: |
+        Describe this image in detail.
+
+        {{{ input_image }}}
+
+        Return JSON with: {"description": "...", "objects": ["...", "..."]}
+      inputs:
+        input_image: Brainpipe::Image
+      outputs:
+        description: String
+        objects: [String]
+```
+
+**Text-to-Image (Generation) Example:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::LlmCall
+    model: gemini_image_gen
+    options:
+      capability: text_to_image
+      prompt: |
+        Generate an image based on this description:
+
+        {{{ prompt_text }}}
+
+        Style: {{{ style }}}
+      inputs:
+        prompt_text: String
+        style: String
+      outputs:
+        generated_image: Brainpipe::Image
+      image_extractor: Brainpipe::Extractors::GeminiImage
+```
+
+**Image-to-Image (Edit) Example:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::LlmCall
+    model: gemini_flash_image
+    options:
+      capability: image_edit
+      prompt: |
+        Edit this image according to the instructions:
+
+        {{{ source_image }}}
+
+        Instructions: {{{ edit_instructions }}}
+      inputs:
+        source_image: Brainpipe::Image
+        edit_instructions: String
+      outputs:
+        edited_image: Brainpipe::Image
+      image_extractor: Brainpipe::Extractors::GeminiImage
+```
+
+**With template file:**
+```yaml
+operations:
+  - type: Brainpipe::Operations::LlmCall
+    model: openai_gpt4
+    options:
+      capability: text_to_text
+      prompt_file: prompts/extract_entities.mustache
+      inputs:
+        input_text: String
+        language: String
+      outputs:
+        entities: [{ name: String, type: String }]
+```
+
+**How It Works:**
+1. Loads prompt template from `prompt` string or `prompt_file` path
+2. Renders template using Mustache with namespace values
+3. Selects provider adapter based on model config (openai, anthropic, google_ai, etc.)
+4. Adapter marshals request to provider-specific format, handling images appropriately
+5. Adapter executes HTTP call and returns raw response
+6. For text outputs: extracts text, parses as JSON, validates against schema
+7. For image outputs: passes response to configured `image_extractor`
+8. Merges validated output into namespace
+
+**Configuration Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `capability` | Yes | Required capability (text_to_text, image_to_text, text_to_image, image_edit) |
+| `prompt` | Yes* | Inline Mustache template |
+| `prompt_file` | Yes* | Path to Mustache template file (relative to config dir) |
+| `inputs` | Yes | Map of input variable names to types |
+| `outputs` | Yes | Map of output variable names to types |
+| `image_extractor` | No** | Class to extract images from response (required for image outputs) |
+| `json_mode` | No | Force JSON response mode if provider supports it (default: true for text outputs) |
+
+*One of `prompt` or `prompt_file` is required.
+**Required when outputs contain Image types.
+
+**Mustache Template Syntax:**
+
+Uses standard Mustache syntax (via the `mustache` gem):
+
+```mustache
+{{ variable }}              # HTML-escaped interpolation
+{{{ variable }}}            # Unescaped interpolation (use for text content)
+{{# list }}...{{/ list }}   # Section (iteration)
+{{^ flag }}...{{/ flag }}   # Inverted section (if falsy)
+```
+
+For Image inputs, the adapter handles rendering appropriately for the provider.
+
+**Provider Adapters:**
+
+Provider adapters handle the marshalling between Brainpipe's generic request format and provider-specific APIs. Adapters are selected automatically based on `model_config.provider`.
+
+```ruby
+module Brainpipe::ProviderAdapters
+  class Base
+    def call(prompt:, model_config:, images: [], json_mode: false)
+      raise NotImplementedError
+    end
+
+    def extract_text(response)
+      raise NotImplementedError
+    end
+  end
+
+  class OpenAI < Base
+    def call(prompt:, model_config:, images: [], json_mode: false)
+      # Build OpenAI chat completion request
+      # Handle images as base64 in content array
+      # Set response_format: {type: "json_object"} if json_mode
+    end
+
+    def extract_text(response)
+      response.dig("choices", 0, "message", "content")
+    end
+  end
+
+  class Anthropic < Base
+    def call(prompt:, model_config:, images: [], json_mode: false)
+      # Build Anthropic messages request
+      # Handle images in content blocks
+    end
+
+    def extract_text(response)
+      response.dig("content", 0, "text")
+    end
+  end
+
+  class GoogleAI < Base
+    def call(prompt:, model_config:, images: [], json_mode: false)
+      # Build Google AI generateContent request
+      # Handle images as inlineData parts
+    end
+
+    def extract_text(response)
+      response.dig("candidates", 0, "content", "parts", 0, "text")
+    end
+  end
+end
+```
+
+**Adapter Registry:**
+```ruby
+Brainpipe::ProviderAdapters.register(:openai, OpenAI)
+Brainpipe::ProviderAdapters.register(:anthropic, Anthropic)
+Brainpipe::ProviderAdapters.register(:google_ai, GoogleAI)
+Brainpipe::ProviderAdapters.register(:vertex, Vertex)
+Brainpipe::ProviderAdapters.register(:bedrock, Bedrock)
+Brainpipe::ProviderAdapters.register(:azure, Azure)
+
+# Selection
+adapter = Brainpipe::ProviderAdapters.for(model_config.provider)
+```
+
+**Ruby Implementation:**
+```ruby
+require "mustache"
+
+class Brainpipe::Operations::LlmCall < Operation
+  def initialize(model: nil, options: {})
+    super
+    @prompt_template = load_template(options)
+    @capability = options[:capability]&.to_sym
+    @input_types = options[:inputs] || {}
+    @output_types = options[:outputs] || {}
+    @image_extractor = resolve_extractor(options[:image_extractor])
+    @json_mode = options.fetch(:json_mode, !has_image_output?)
+  end
+
+  def required_model_capability
+    @capability
+  end
+
+  def declared_reads(prefix_schema = {})
+    @input_types
+  end
+
+  def declared_sets(prefix_schema = {})
+    @output_types
+  end
+
+  def create
+    template = @prompt_template
+    output_types = @output_types
+    json_mode = @json_mode
+    model_cfg = model_config
+    extractor = @image_extractor
+
+    ->(namespaces) {
+      adapter = ProviderAdapters.for(model_cfg.provider)
+
+      namespaces.map do |ns|
+        # Build template context, marking images for adapter
+        context = build_context(ns)
+        images = extract_images(ns)
+
+        # Render template with Mustache
+        prompt = Mustache.render(template, context)
+
+        # Call provider
+        response = adapter.call(
+          prompt: prompt,
+          model_config: model_cfg,
+          images: images,
+          json_mode: json_mode
+        )
+
+        # Extract outputs based on type
+        if extractor
+          # Image output - use extractor
+          image = extractor.call(response)
+          image_field = output_types.find { |_, t| t == Image || t.to_s.include?("Image") }&.first
+          ns.merge(image_field => image)
+        else
+          # Text/JSON output
+          text = adapter.extract_text(response)
+          json = JSON.parse(text)
+          validate_output!(json, output_types)
+          ns.merge(json.transform_keys(&:to_sym))
+        end
+      end
+    }
+  end
+
+  private
+
+  def has_image_output?
+    @output_types.values.any? { |t| t == Image || t.to_s.include?("Image") }
+  end
+
+  def build_context(namespace)
+    namespace.to_h.transform_values do |value|
+      case value
+      when Image
+        "[IMAGE]"  # Placeholder; actual image passed separately to adapter
+      else
+        value
+      end
+    end
+  end
+
+  def extract_images(namespace)
+    namespace.to_h.select { |_, v| v.is_a?(Image) }
+  end
+end
+```
+
 ---
 
 ## Configuration
@@ -908,6 +1207,7 @@ end
 - `zeitwerk` - Autoloading
 - `sorbet-runtime` - Runtime type checking (T::Struct, etc.)
 - `concurrent-ruby` - Thread pool for fan-out
+- `mustache` - Template rendering for LlmCall operation
 
 ### Optional
 - `baml` - BAML integration (runtime dependency)

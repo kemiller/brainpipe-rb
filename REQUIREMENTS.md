@@ -125,6 +125,23 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-10.6: The Image type MUST track MIME type
 - FR-10.7: Operations MUST be able to extract images from raw LLM responses (e.g., Gemini's inlineData)
 
+### FR-11: LlmCall Operation
+
+- FR-11.1: The library MUST provide an LlmCall operation for direct LLM calls without BAML
+- FR-11.2: LlmCall MUST accept a prompt template as a string or file path
+- FR-11.3: LlmCall MUST use Mustache for template interpolation
+- FR-11.4: LlmCall MUST declare input variables that map to namespace properties
+- FR-11.5: LlmCall MUST declare output variables with type specifications
+- FR-11.6: LlmCall MUST parse LLM text responses as JSON
+- FR-11.7: LlmCall MUST validate parsed JSON against the declared output schema
+- FR-11.8: LlmCall MUST raise an error if JSON parsing fails or output validation fails
+- FR-11.9: LlmCall MUST be provider-agnostic; provider-specific adapters handle request/response marshalling
+- FR-11.10: Provider adapters MUST be selected automatically based on model config
+- FR-11.11: LlmCall MUST declare a required capability (text_to_text, image_to_text, text_to_image, etc.)
+- FR-11.12: LlmCall MUST support Image type in inputs for multimodal capabilities
+- FR-11.13: LlmCall MUST support Image type in outputs for image generation capabilities
+- FR-11.14: For image outputs, LlmCall MUST use an image extractor (like BamlRaw)
+
 ### FR-8: Model Configuration
 
 - FR-8.1: Model configs MUST be named and referenceable by name
