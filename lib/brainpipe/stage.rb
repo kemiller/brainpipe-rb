@@ -56,6 +56,47 @@ module Brainpipe
       true
     end
 
+    def validate_parallel_type_consistency!(prefix_schema = {})
+      type_by_field = {}
+
+      operations.each do |op|
+        op.declared_sets(prefix_schema).each do |name, config|
+          type = config[:type]
+          next unless type
+
+          if type_by_field.key?(name)
+            existing_type = type_by_field[name][:type]
+            if existing_type != type
+              raise TypeConflictError,
+                "Stage '#{self.name}' has type conflict for field '#{name}': " \
+                "#{type_by_field[name][:operation].class.name} sets #{existing_type.inspect}, " \
+                "but #{op.class.name} sets #{type.inspect}"
+            end
+          else
+            type_by_field[name] = { type: type, operation: op }
+          end
+        end
+      end
+    end
+
+    def aggregate_reads(prefix_schema = {})
+      operations.each_with_object({}) do |op, reads|
+        op.declared_reads(prefix_schema).each do |name, config|
+          next if reads.key?(name) && !config[:optional]
+          reads[name] = config
+        end
+      end
+    end
+
+    def aggregate_sets(prefix_schema = {})
+      operations.each_with_object({}) do |op, sets|
+        op.declared_sets(prefix_schema).each do |name, config|
+          next if sets.key?(name) && !config[:optional]
+          sets[name] = config
+        end
+      end
+    end
+
     private
 
     def monotonic_time
@@ -299,24 +340,6 @@ module Brainpipe
       num_namespaces = first_result.length
       (0...num_namespaces).map do |idx|
         merge_at_index(successful, idx)
-      end
-    end
-
-    def aggregate_reads
-      operations.each_with_object({}) do |op, reads|
-        op.declared_reads.each do |name, config|
-          next if reads.key?(name) && !config[:optional]
-          reads[name] = config
-        end
-      end
-    end
-
-    def aggregate_sets
-      operations.each_with_object({}) do |op, sets|
-        op.declared_sets.each do |name, config|
-          next if sets.key?(name) && !config[:optional]
-          sets[name] = config
-        end
       end
     end
   end

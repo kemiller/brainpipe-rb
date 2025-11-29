@@ -137,18 +137,23 @@ module Brainpipe
     end
 
     def validate_stage_compatibility!
-      return if stages.length < 2
+      prefix_schema = {}
+      stages.each_with_index do |stage, index|
+        stage.validate_parallel_type_consistency!(prefix_schema)
 
-      stages.each_cons(2).with_index do |(current_stage, next_stage), index|
-        validate_stage_pair!(current_stage, next_stage, index)
+        if index < stages.length - 1
+          validate_stage_pair!(stage, stages[index + 1], prefix_schema)
+        end
+
+        prefix_schema = compute_output_schema(prefix_schema, stage)
       end
     end
 
-    def validate_stage_pair!(current_stage, next_stage, index)
-      available_outputs = aggregate_available_properties(index)
-      required_inputs = next_stage.inputs.reject { |_, config| config[:optional] }
+    def validate_stage_pair!(current_stage, next_stage, prefix_schema)
+      output_schema = compute_output_schema(prefix_schema, current_stage)
+      required_inputs = next_stage.aggregate_reads(output_schema).reject { |_, config| config[:optional] }
 
-      missing = required_inputs.keys - available_outputs.keys
+      missing = required_inputs.keys - output_schema.keys
 
       unless missing.empty?
         raise IncompatibleStagesError,
@@ -157,20 +162,32 @@ module Brainpipe
       end
     end
 
-    def aggregate_available_properties(up_to_index)
-      properties = {}
+    def compute_output_schema(prefix_schema, stage)
+      result = prefix_schema.dup
 
-      stages[0..up_to_index].each do |stage|
-        stage.outputs.each do |name, config|
-          properties[name] = config unless config[:optional]
-        end
-
-        stage.inputs.each do |name, config|
-          properties[name] = config unless properties.key?(name)
-        end
+      stage.operations.each do |op|
+        op.declared_deletes(prefix_schema).each { |name| result.delete(name) }
       end
 
-      properties
+      stage.aggregate_sets(prefix_schema).each do |name, config|
+        result[name] = config
+      end
+
+      stage.aggregate_reads(prefix_schema).each do |name, config|
+        result[name] = config unless result.key?(name)
+      end
+
+      result
+    end
+
+    def aggregate_available_properties(up_to_index)
+      prefix_schema = {}
+
+      stages[0..up_to_index].each do |stage|
+        prefix_schema = compute_output_schema(prefix_schema, stage)
+      end
+
+      prefix_schema
     end
   end
 end

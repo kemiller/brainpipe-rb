@@ -22,4 +22,5 @@ module Brainpipe
   class UnexpectedPropertyError < ContractViolationError; end
   class UnexpectedDeletionError < ContractViolationError; end
   class OutputCountMismatchError < ContractViolationError; end
+  class TypeConflictError < ContractViolationError; end
 end

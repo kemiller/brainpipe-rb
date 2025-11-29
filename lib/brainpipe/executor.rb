@@ -159,6 +159,7 @@ module Brainpipe
     end
 
     def validate_output_count!(input, output)
+      return if operation.allows_count_change?
       return if input.length == output.length
 
       raise OutputCountMismatchError,

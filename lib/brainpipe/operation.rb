@@ -79,20 +79,24 @@ module Brainpipe
       freeze
     end
 
-    def declared_reads
+    def declared_reads(prefix_schema = {})
       self.class._reads.dup
     end
 
-    def declared_sets
+    def declared_sets(prefix_schema = {})
       self.class._sets.dup
     end
 
-    def declared_deletes
+    def declared_deletes(prefix_schema = {})
       self.class._deletes.dup
     end
 
     def required_model_capability
       self.class._required_model_capability
+    end
+
+    def allows_count_change?
+      false
     end
 
     def error_handler

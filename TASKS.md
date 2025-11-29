@@ -291,40 +291,40 @@
 
 ## Phase 12: Built-in Operations (Type-Safe)
 
-- [ ] Update prerequisites for type flow support
-  - [ ] Update `lib/brainpipe/operation.rb` - `declared_reads/sets/deletes` accept `prefix_schema = {}`
-  - [ ] Update `lib/brainpipe/pipe.rb` - pass prefix schema during validation, add `validate_parallel_type_consistency!`
-  - [ ] Update `lib/brainpipe/stage.rb` - pass prefix schema to operations in aggregate methods
-  - [ ] Add `TypeConflictError` to `lib/brainpipe/errors.rb`
-- [ ] Create `lib/brainpipe/operations/` directory
-- [ ] Create `lib/brainpipe/operations/transform.rb`
-  - [ ] Rename/copy fields with type preservation via prefix_schema lookup
-  - [ ] Options: `from`, `to`, `delete_source`
-- [ ] Create `lib/brainpipe/operations/filter.rb`
-  - [ ] Conditional pass-through (pure passthrough for schema)
-  - [ ] Options: `field`/`value` or custom `condition` proc
-- [ ] Create `lib/brainpipe/operations/merge.rb`
-  - [ ] Combine multiple fields into one
-  - [ ] Options: `sources`, `target`, `combiner`, `target_type`, `delete_sources`
-- [ ] Create `lib/brainpipe/operations/log.rb`
-  - [ ] Debug logging (pure passthrough, no schema changes)
-  - [ ] Options: `fields`, `message`, `level`
-- [ ] Write specs for type preservation
-  - [ ] Transform renames field with correct type in output schema
-  - [ ] Chained transforms preserve type through chain
-  - [ ] Merge enforces explicit target_type
-- [ ] Write specs for type conflict detection
-  - [ ] Parallel ops setting same field with same type: OK
-  - [ ] Parallel ops setting same field with different types: `TypeConflictError`
-- [ ] Write specs for schema flow
-  - [ ] Verify `prefix - deletes + sets` calculation
-  - [ ] Fields not touched by operation flow through unchanged
-- [ ] Write specs for each built-in operation
-  - [ ] Transform: rename, copy, type lookup
-  - [ ] Filter: field/value match, custom condition, subset output
-  - [ ] Merge: multiple sources, target_type, optional deletion
-  - [ ] Log: pure passthrough
-- [ ] Integration tests with built-ins in pipes
+- [x] Update prerequisites for type flow support
+  - [x] Update `lib/brainpipe/operation.rb` - `declared_reads/sets/deletes` accept `prefix_schema = {}`
+  - [x] Update `lib/brainpipe/pipe.rb` - pass prefix schema during validation, add `validate_parallel_type_consistency!`
+  - [x] Update `lib/brainpipe/stage.rb` - pass prefix schema to operations in aggregate methods
+  - [x] Add `TypeConflictError` to `lib/brainpipe/errors.rb`
+- [x] Create `lib/brainpipe/operations/` directory
+- [x] Create `lib/brainpipe/operations/transform.rb`
+  - [x] Rename/copy fields with type preservation via prefix_schema lookup
+  - [x] Options: `from`, `to`, `delete_source`
+- [x] Create `lib/brainpipe/operations/filter.rb`
+  - [x] Conditional pass-through (pure passthrough for schema)
+  - [x] Options: `field`/`value` or custom `condition` proc
+- [x] Create `lib/brainpipe/operations/merge.rb`
+  - [x] Combine multiple fields into one
+  - [x] Options: `sources`, `target`, `combiner`, `target_type`, `delete_sources`
+- [x] Create `lib/brainpipe/operations/log.rb`
+  - [x] Debug logging (pure passthrough, no schema changes)
+  - [x] Options: `fields`, `message`, `level`
+- [x] Write specs for type preservation
+  - [x] Transform renames field with correct type in output schema
+  - [x] Chained transforms preserve type through chain
+  - [x] Merge enforces explicit target_type
+- [x] Write specs for type conflict detection
+  - [x] Parallel ops setting same field with same type: OK
+  - [x] Parallel ops setting same field with different types: `TypeConflictError`
+- [x] Write specs for schema flow
+  - [x] Verify `prefix - deletes + sets` calculation
+  - [x] Fields not touched by operation flow through unchanged
+- [x] Write specs for each built-in operation
+  - [x] Transform: rename, copy, type lookup
+  - [x] Filter: field/value match, custom condition, subset output
+  - [x] Merge: multiple sources, target_type, optional deletion
+  - [x] Log: pure passthrough
+- [x] Integration tests with built-ins in pipes
 
 ---
 
