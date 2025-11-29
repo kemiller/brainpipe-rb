@@ -2,12 +2,43 @@ require "concurrent"
 require "timeout"
 
 module Brainpipe
+  # A pipeline stage that groups operations with a specific execution mode.
+  #
+  # @example Merge mode stage
+  #   stage = Brainpipe::Stage.new(
+  #     name: :process,
+  #     mode: :merge,
+  #     operations: [Op1.new, Op2.new]
+  #   )
+  #
+  # @example Fan-out mode with parallel execution
+  #   stage = Brainpipe::Stage.new(
+  #     name: :parallel,
+  #     mode: :fan_out,
+  #     operations: [ProcessItem.new]
+  #   )
+  #
   class Stage
+    # Valid stage execution modes
     MODES = [:merge, :fan_out, :batch].freeze
+    # Valid merge strategies for parallel operations
     MERGE_STRATEGIES = [:last_in, :first_in, :collate, :disjoint].freeze
 
+    # @return [Symbol] the stage name
+    # @return [Symbol] the execution mode (:merge, :fan_out, :batch)
+    # @return [Array<Operation>] the operations to execute
+    # @return [Symbol] the merge strategy for parallel results
+    # @return [Numeric, nil] the timeout in seconds
     attr_reader :name, :mode, :operations, :merge_strategy, :timeout
 
+    # Create a new stage.
+    # @param name [Symbol, String] the stage name
+    # @param mode [Symbol] execution mode (:merge, :fan_out, :batch)
+    # @param operations [Array<Operation>] operations to execute
+    # @param merge_strategy [Symbol] how to merge parallel results
+    # @param timeout [Numeric, nil] optional timeout in seconds
+    # @param debug [Boolean] enable debug output
+    # @raise [ConfigurationError] if mode or strategy is invalid
     def initialize(name:, mode:, operations:, merge_strategy: :last_in, timeout: nil, debug: false)
       @name = name.to_sym
       @mode = validate_mode!(mode)
@@ -24,6 +55,15 @@ module Brainpipe
       freeze
     end
 
+    # Execute the stage with the given namespaces.
+    # @param namespaces [Array<Namespace>] input namespaces
+    # @param timeout [Numeric, nil] override timeout
+    # @param metrics_collector [MetricsCollector, nil] metrics collector
+    # @param debugger [Debug, nil] debugger instance
+    # @param pipe_name [Symbol, nil] parent pipe name
+    # @raise [EmptyInputError] if namespaces is empty
+    # @raise [TimeoutError] if execution exceeds timeout
+    # @return [Array<Namespace>] result namespaces
     def call(namespaces, timeout: nil, metrics_collector: nil, debugger: nil, pipe_name: nil)
       raise EmptyInputError, "Stage '#{name}' received empty input" if namespaces.empty?
 

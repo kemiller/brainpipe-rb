@@ -1,4 +1,28 @@
 module Brainpipe
+  # Base class for pipeline operations. Subclass this to define custom operations.
+  #
+  # @example Simple operation with execute block
+  #   class MyOp < Brainpipe::Operation
+  #     reads :input, String
+  #     sets :output, String
+  #
+  #     execute do |ns|
+  #       { output: ns[:input].upcase }
+  #     end
+  #   end
+  #
+  # @example Operation with full control via call method
+  #   class BatchOp < Brainpipe::Operation
+  #     reads :items, [String]
+  #     sets :processed, [String]
+  #
+  #     def call(namespaces)
+  #       namespaces.map do |ns|
+  #         ns.merge(processed: ns[:items].map(&:upcase))
+  #       end
+  #     end
+  #   end
+  #
   class Operation
     class << self
       def inherited(subclass)
@@ -11,33 +35,56 @@ module Brainpipe
         subclass.instance_variable_set(:@_timeout, nil)
       end
 
+      # Declare a property this operation reads from the namespace.
+      # @param name [Symbol, String] the property name
+      # @param type [Class, nil] the expected type (optional)
+      # @param optional [Boolean] whether the property is optional
       def reads(name, type = nil, optional: false)
         @_reads ||= {}
         @_reads[name.to_sym] = { type: type, optional: optional }
       end
 
+      # Declare a property this operation sets on the namespace.
+      # @param name [Symbol, String] the property name
+      # @param type [Class, nil] the expected type (optional)
+      # @param optional [Boolean] whether setting is optional
       def sets(name, type = nil, optional: false)
         @_sets ||= {}
         @_sets[name.to_sym] = { type: type, optional: optional }
       end
 
+      # Declare a property this operation deletes from the namespace.
+      # @param name [Symbol, String] the property name
       def deletes(name)
         @_deletes ||= []
         @_deletes << name.to_sym
       end
 
+      # Require a model with a specific capability.
+      # @param capability [Symbol] the required capability (e.g., :text_to_text)
       def requires_model(capability)
         @_required_model_capability = capability.to_sym
       end
 
+      # Configure error handling for this operation.
+      # @param value [Boolean, nil] true to ignore all errors
+      # @yield [error] block to determine if error should be ignored
+      # @yieldparam error [Exception] the error that occurred
+      # @yieldreturn [Boolean] true to ignore the error
       def ignore_errors(value = nil, &block)
         @_error_handler = block_given? ? block : value
       end
 
+      # Set a timeout for this operation in seconds.
+      # @param value [Numeric] timeout in seconds
       def timeout(value)
         @_timeout = value
       end
 
+      # Define the execution logic for this operation.
+      # @yield [namespace] block called for each namespace
+      # @yieldparam namespace [Namespace] the input namespace
+      # @yieldreturn [Hash, Namespace] properties to merge or new namespace
       def execute(&block)
         @_execute_block = block
       end

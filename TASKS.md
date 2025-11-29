@@ -354,10 +354,10 @@
 
 ## Final Tasks
 
-- [ ] Review all public API for consistency
-- [ ] Ensure all errors have useful messages
-- [ ] Add YARD documentation to public methods
-- [ ] Update README with usage examples
-- [ ] Create CHANGELOG.md
-- [ ] Verify gemspec metadata
-- [ ] Test gem installation from local build
+- [x] Review all public API for consistency
+- [x] Ensure all errors have useful messages
+- [x] Add YARD documentation to public methods
+- [x] Update README with usage examples
+- [x] Create CHANGELOG.md
+- [x] Verify gemspec metadata
+- [x] Test gem installation from local build

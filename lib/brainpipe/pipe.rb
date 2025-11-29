@@ -1,9 +1,31 @@
 require "timeout"
 
 module Brainpipe
+  # A pipeline that chains stages together for sequential execution.
+  # Pipes validate stage compatibility and ensure the last stage is merge mode.
+  #
+  # @example Creating and running a pipe
+  #   pipe = Brainpipe::Pipe.new(
+  #     name: :my_pipeline,
+  #     stages: [stage1, stage2],
+  #     timeout: 30
+  #   )
+  #   result = pipe.call(input: "data")
+  #
   class Pipe
+    # @return [Symbol] the pipe name
+    # @return [Array<Stage>] the pipeline stages
+    # @return [Numeric, nil] the timeout in seconds
+    # @return [MetricsCollector, nil] the metrics collector
     attr_reader :name, :stages, :timeout, :metrics_collector
 
+    # Create a new pipeline.
+    # @param name [Symbol, String] the pipe name
+    # @param stages [Array<Stage>] the stages to execute
+    # @param timeout [Numeric, nil] optional timeout in seconds
+    # @param debug [Boolean] enable debug output
+    # @param metrics_collector [MetricsCollector, nil] optional metrics collector
+    # @raise [ConfigurationError] if validation fails
     def initialize(name:, stages:, timeout: nil, debug: false, metrics_collector: nil)
       @name = name.to_sym
       @stages = stages.freeze
@@ -19,6 +41,14 @@ module Brainpipe
       freeze
     end
 
+    # Execute the pipeline with the given input properties.
+    # @param properties [Hash, Namespace, nil] input properties
+    # @param metrics_collector [MetricsCollector, nil] override metrics collector
+    # @param debugger [Debug, nil] override debugger
+    # @param kwargs [Hash] alternative way to pass properties
+    # @raise [EmptyInputError] if no properties provided
+    # @raise [TimeoutError] if execution exceeds timeout
+    # @return [Namespace] the result namespace
     def call(properties = nil, metrics_collector: nil, debugger: nil, **kwargs)
       properties = kwargs if properties.nil? && !kwargs.empty?
       raise EmptyInputError, "Pipe '#{name}' received empty properties" if properties.nil?

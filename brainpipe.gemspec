@@ -4,9 +4,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Ken Miller"]
   spec.email         = ["ken.miller@gmail.com"]
 
-  spec.summary       = "A brief summary of your gem"
-  spec.description   = "A longer description of your gem"
-  spec.homepage      = "https://github.com/yourusername/brainpipe"
+  spec.summary       = "Type-safe, observable LLM pipelines with contract validation"
+  spec.description   = "A Ruby gem for building type-safe, observable LLM pipelines with contract validation. " \
+                       "Provides a declarative DSL for composing operations into pipelines with built-in support " \
+                       "for parallel execution, type checking, and BAML integration."
+  spec.homepage      = "https://github.com/kenmiller/brainpipe"
   spec.license       = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
