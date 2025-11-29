@@ -71,20 +71,6 @@ module Brainpipe
       @cache[0]
     end
 
-    def to_baml_image
-      BamlAdapter.require_available!
-
-      if defined?(::Baml::Image)
-        if url?
-          ::Baml::Image.from_url(@url)
-        else
-          ::Baml::Image.from_base64(mime_type, @base64_data)
-        end
-      else
-        raise ConfigurationError, "Baml::Image is not available"
-      end
-    end
-
     def inspect
       if url?
         "#<Brainpipe::Image url=#{@url.inspect} mime_type=#{@mime_type.inspect}>"

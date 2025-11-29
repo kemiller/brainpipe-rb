@@ -27,12 +27,53 @@ module Brainpipe
         BamlFunction.new(name: name.to_sym, client: baml_client)
       end
 
+      def to_baml_image(image)
+        require_available!
+        raise ConfigurationError, "Baml::Image is not available" unless defined?(::Baml::Image)
+
+        if image.url?
+          ::Baml::Image.from_url(image.url)
+        else
+          ::Baml::Image.from_base64(image.mime_type, image.base64)
+        end
+      end
+
+      def build_client_registry(model_config)
+        return nil unless model_config
+        require_available!
+
+        registry = ::Baml::ClientRegistry.new
+        client = build_client_hash(model_config)
+        registry.add_llm_client(model_config.name.to_s, model_config.provider.to_s, client)
+        registry.set_primary(model_config.name.to_s)
+        registry
+      end
+
       def reset!
         @available = nil
         @baml_client = nil
       end
 
       private
+
+      def build_client_hash(model_config)
+        opts = model_config.options || {}
+        client = {
+          "model" => model_config.model,
+          "api_key" => model_config.resolved_api_key
+        }
+
+        base_url = opts[:base_url] || opts["base_url"]
+        temperature = opts[:temperature] || opts["temperature"]
+        max_tokens = opts[:max_tokens] || opts["max_tokens"]
+        generation_config = opts[:generation_config] || opts["generation_config"]
+
+        client["base_url"] = base_url if base_url
+        client["temperature"] = temperature if temperature
+        client["max_tokens"] = max_tokens if max_tokens
+        client["generationConfig"] = generation_config if generation_config
+        client
+      end
 
       def find_baml_client
         if defined?(::Baml) && ::Baml.respond_to?(:Client)

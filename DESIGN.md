@@ -217,8 +217,10 @@ class Brainpipe::Image
   def base64?       # true if base64 data is available
   def url           # returns URL or raises if base64-only
   def base64        # returns base64 data, fetching from URL if needed
-  def to_baml_image # converts to BAML Image type for LLM input
 end
+
+# BAML conversion via adapter (see BamlAdapter section)
+BamlAdapter.to_baml_image(image)  # converts to Baml::Image
 ```
 
 **MIME Type Inference:**
@@ -861,8 +863,11 @@ class ModelConfig
 
   def initialize(name:, provider:, model:, capabilities:, options: {})
   def has_capability?(capability)
-  def to_baml_client_registry    # Convert for BAML
+  def resolved_api_key            # Resolves API key from options via SecretResolver
 end
+
+# BAML conversion via adapter (see BamlAdapter section)
+BamlAdapter.build_client_registry(model_config)  # converts to Baml::ClientRegistry
 ```
 
 ---
@@ -906,6 +911,73 @@ end
 
 ### Optional
 - `baml` - BAML integration (runtime dependency)
+
+---
+
+## BamlAdapter
+
+The `BamlAdapter` class is the **single point of contact** for all BAML interactions. Core models (`ModelConfig`, `Image`, etc.) must not directly reference BAML constants or require the BAML gem.
+
+### Design Rationale
+
+- BAML is an optional dependency; core models remain decoupled from any specific LLM adapter
+- Future adapters (e.g., LangChain, LiteLLM) can be added without modifying core classes
+- All `::Baml::*` references and `require "baml"` statements are confined to `baml_adapter.rb`
+
+### Interface
+
+```ruby
+class BamlAdapter
+  class << self
+    def available?              # true if BAML gem is loadable
+    def require_available!      # raises ConfigurationError if unavailable
+
+    def function(name)          # returns BamlFunction wrapper
+    def baml_client             # returns the BAML client (::Baml.Client or ::B)
+
+    # Type conversions (core types → BAML types)
+    def to_baml_image(image)                    # Image → Baml::Image
+    def build_client_registry(model_config)     # ModelConfig → Baml::ClientRegistry
+
+    def reset!                  # clears cached state (for testing)
+  end
+end
+
+class BamlFunction
+  attr_reader :name, :client
+
+  def call(input, client_registry: nil)  # executes BAML function
+  def input_schema                        # returns input schema hash
+  def output_schema                       # returns output schema hash
+end
+```
+
+### Usage in Operations
+
+```ruby
+# In BAML operations
+class Brainpipe::Operations::Baml < Operation
+  def create
+    ->(namespaces) {
+      namespaces.map do |ns|
+        input = build_input(ns)
+        registry = BamlAdapter.build_client_registry(model_config) if model_config
+        result = @baml_function.call(input, client_registry: registry)
+        ns.merge(map_outputs(result))
+      end
+    }
+  end
+
+  private
+
+  def convert_for_baml(value)
+    case value
+    when Image then BamlAdapter.to_baml_image(value)
+    else value
+    end
+  end
+end
+```
 
 ### Development
 - `rspec` - Testing

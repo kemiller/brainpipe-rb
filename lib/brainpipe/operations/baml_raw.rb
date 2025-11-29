@@ -67,7 +67,7 @@ module Brainpipe
         ->(namespaces) do
           namespaces.map do |ns|
             input = build_input(ns, input_mapping)
-            client_registry = model_config&.to_baml_client_registry
+            client_registry = BamlAdapter.build_client_registry(model_config)
 
             result = execute_raw_request(function_name, input, client_registry)
             image = extractor.call(result[:raw_json])
@@ -134,7 +134,7 @@ module Brainpipe
       def convert_value_for_baml(value)
         case value
         when Image
-          value.to_baml_image
+          BamlAdapter.to_baml_image(value)
         else
           value
         end

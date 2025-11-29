@@ -111,13 +111,16 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-7.3: BAML operations SHOULD integrate with the metrics collector (FR-6.3)
 - FR-7.4: BAML operations MUST support raw response access when BAML parsing is insufficient (e.g., image outputs)
 - FR-7.5: Raw BAML operations MUST use BAML's Modular API to construct requests and access responses
+- FR-7.6: All BAML-specific code MUST be isolated in the BamlAdapter class
+- FR-7.7: Core models (ModelConfig, Image, etc.) MUST NOT directly reference BAML constants or require the BAML gem
+- FR-7.8: BamlAdapter MUST provide conversion methods for core types (e.g., Image → Baml::Image, ModelConfig → ClientRegistry)
 
 ### FR-10: Image Support
 
 - FR-10.1: The library MUST provide a built-in Image type for representing images
 - FR-10.2: The Image type MUST support both URL and base64 representations
 - FR-10.3: The Image type MUST support lazy conversion between URL and base64 (fetch on demand)
-- FR-10.4: The Image type MUST be convertible to BAML image format for LLM input
+- FR-10.4: The Image type MUST be convertible to BAML image format via BamlAdapter (not directly)
 - FR-10.5: The Image type MUST support loading from file paths
 - FR-10.6: The Image type MUST track MIME type
 - FR-10.7: Operations MUST be able to extract images from raw LLM responses (e.g., Gemini's inlineData)
@@ -128,7 +131,7 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-8.2: Model configs MUST specify a provider (e.g., openai, anthropic, vertex, bedrock, azure)
 - FR-8.3: Model configs MUST specify a model identifier
 - FR-8.4: Model configs MUST support provider-specific options (temperature, max_tokens, api_key, etc.)
-- FR-8.5: Model configs MUST be convertible to BAML ClientRegistry format
+- FR-8.5: Model configs MUST be convertible to BAML ClientRegistry format via BamlAdapter (not directly)
 - FR-8.6: Model configs MUST be definable in YAML configuration files
 - FR-8.7: Operations MUST be able to reference model configs by name
 - FR-8.9: Model configs MUST support retry configuration (count, backoff) via BAML client options
