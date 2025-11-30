@@ -13,3 +13,5 @@
 
 *.gem
 *.rbc
+
+spec/examples.txt
