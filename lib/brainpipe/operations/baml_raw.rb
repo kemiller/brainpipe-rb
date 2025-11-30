@@ -1,7 +1,6 @@
 require "net/http"
 require "json"
 require "uri"
-require "openssl"
 
 module Brainpipe
   module Operations
@@ -149,11 +148,7 @@ module Brainpipe
 
         uri = URI.parse(url)
         http = Net::HTTP.new(uri.host, uri.port)
-        if uri.scheme == "https"
-          http.use_ssl = true
-          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-          http.verify_callback = ->(_preverify_ok, _store_ctx) { true }
-        end
+        http.use_ssl = uri.scheme == "https"
 
         request = Net::HTTP::Post.new(uri.request_uri)
         headers.each { |k, v| request[k] = v }

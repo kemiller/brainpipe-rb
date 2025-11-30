@@ -26,7 +26,6 @@ module Brainpipe
       def execute_request(uri, body, headers, timeout: 120)
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = uri.scheme == "https"
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE if ENV["BRAINPIPE_SKIP_SSL_VERIFY"]
         http.read_timeout = timeout
         http.open_timeout = timeout
 
