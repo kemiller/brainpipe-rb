@@ -2,6 +2,7 @@ module Brainpipe
   module Operations
     class Merge < Operation
       def initialize(model: nil, options: {})
+        warn "[DEPRECATION] Merge is deprecated. Use Collapse instead."
         @sources = Array(options[:sources]).map(&:to_sym)
         @target = options[:target]&.to_sym
         @combiner = options[:combiner] || ->(values) { values.join(" ") }

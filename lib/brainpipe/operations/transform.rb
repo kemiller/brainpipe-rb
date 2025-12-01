@@ -2,6 +2,7 @@ module Brainpipe
   module Operations
     class Transform < Operation
       def initialize(model: nil, options: {})
+        warn "[DEPRECATION] Transform is deprecated. Use Link instead."
         @from = options[:from]&.to_sym
         @to = options[:to]&.to_sym
         @delete_source = options.fetch(:delete_source, false)

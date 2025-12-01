@@ -279,12 +279,83 @@ class CallBAML < Brainpipe::Operations::BAML
 end
 ```
 
-### Utility Operations
+### Transformation Operations
 
-- `Brainpipe::Operations::Transform` - Map/transform properties
-- `Brainpipe::Operations::Filter` - Conditional pass-through
-- `Brainpipe::Operations::Merge` - Combine properties
+Three operations handle namespace property manipulation uniformly:
+
+#### Link - Property Rewiring
+
+Copies, moves, sets, and deletes properties. Maintains 1:1 namespace count.
+
+```ruby
+Brainpipe::Operations::Link.new(
+  options: {
+    copy: { source: :target },        # copy field, keep source
+    move: { old_name: :new_name },    # move field, delete source
+    set: { status: "processed" },     # set constant values
+    delete: [:temp_field]             # delete fields
+  }
+)
+```
+
+Operations apply in order: copy → move → set → delete. At least one must be specified.
+
+#### Collapse - Merge N→1
+
+Merges multiple namespaces into one with configurable per-field strategies.
+
+```ruby
+Brainpipe::Operations::Collapse.new(
+  options: {
+    merge: {
+      items: :collect,    # gather all values into array
+      total: :sum,        # add numeric values
+      text: :concat,      # concatenate strings/arrays
+      name: :first,       # take first value
+      type: :equal,       # all must match (error otherwise) - DEFAULT
+      ids: :distinct      # all must be unique (error on duplicates)
+    },
+    move: { items: :all_items },
+    set: { collapsed: true }
+  }
+)
+```
+
+Fields not in `merge:` default to `:equal` strategy (errors on conflicting values).
+
+**Merge strategies:**
+- `:collect` - gather all values into array
+- `:sum` - add numeric values
+- `:concat` - concatenate strings or arrays
+- `:first` / `:last` - take first or last value
+- `:equal` - all must be equal, error otherwise (DEFAULT)
+- `:distinct` - all must be unique, error on duplicates
+
+#### Explode - Split 1→N
+
+Fans out array fields into multiple namespaces.
+
+```ruby
+Brainpipe::Operations::Explode.new(
+  options: {
+    split: {
+      results: :result,   # array field → individual elements
+      images: :image      # must match cardinality of results
+    },
+    on_empty: :skip,      # :skip (default) or :error
+    set: { exploded: true }
+  }
+)
+```
+
+Non-split fields are copied to all output namespaces. Multiple split fields must have the same array length.
+
+### Other Operations
+
+- `Brainpipe::Operations::Filter` - Conditional pass-through (removes namespaces that don't match)
 - `Brainpipe::Operations::Log` - Debug logging
+- `Brainpipe::Operations::Transform` - **(Deprecated)** Use Link instead
+- `Brainpipe::Operations::Merge` - **(Deprecated)** Use Collapse instead
 
 ### BamlRaw Operation
 

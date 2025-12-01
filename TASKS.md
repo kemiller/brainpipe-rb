@@ -804,6 +804,239 @@ ProviderAdapters.for("google_ai")  # works
 
 ---
 
+## Phase 21: Transformation Operations (Link, Collapse, Explode)
+
+### Prerequisites
+
+#### Task 21.0.1: Update Executor for count-changing operations
+**File:** `lib/brainpipe/executor.rb`
+
+- [x] Update `validate_output_count!` to check `operation.allows_count_change?`
+- [x] Skip count validation when `allows_count_change?` returns true
+- [x] FR-2.12, FR-2.13
+
+#### Task 21.0.2: Add stage validation for count-changing operations
+**File:** `lib/brainpipe/stage.rb`
+
+- [ ] Add validation that warns/errors when count-changing operations share a stage
+- [ ] FR-2.14: Count-changing operations should be alone in their stage (optional enhancement)
+
+---
+
+### Task 21.1: Create Link operation
+**File:** `lib/brainpipe/operations/link.rb`
+
+Link rewires namespace properties without changing namespace count.
+
+- [x] `initialize(model: nil, options: {})`
+  - [x] Parse `copy:`, `move:`, `set:`, `delete:` options
+  - [x] Normalize string keys to symbols
+  - [x] Raise `ConfigurationError` if no operation specified (FR-13.1.6)
+- [x] `allows_count_change?` returns `false` (FR-13.1.5)
+- [x] `declared_reads(prefix_schema = {})`
+  - [x] Return fields being copied or moved
+  - [x] Look up types from prefix_schema
+- [x] `declared_sets(prefix_schema = {})`
+  - [x] Return target fields from copy, move, set
+  - [x] Preserve type from source for copy/move
+  - [x] Infer type from value for set
+- [x] `declared_deletes(prefix_schema = {})`
+  - [x] Return explicit delete fields + move source fields
+- [x] `create` returns callable that:
+  - [x] Applies operations in order: copy → move → set → delete (FR-13.1.7)
+  - [x] Processes each namespace independently
+  - [x] Preserves fields not involved in any operation
+
+**Requirements:** FR-13.1.1 through FR-13.1.7
+
+---
+
+### Task 21.2: Create Collapse operation
+**File:** `lib/brainpipe/operations/collapse.rb`
+
+Collapse merges N namespaces into 1 with configurable per-field merge strategies.
+
+- [x] `initialize(model: nil, options: {})`
+  - [x] Parse `merge:` option with per-field strategies
+  - [x] Parse Link options (`copy:`, `move:`, `set:`, `delete:`)
+  - [x] Normalize string keys to symbols
+  - [x] Validate merge strategies (error on unknown)
+- [x] `MERGE_STRATEGIES` constant: `:collect`, `:sum`, `:concat`, `:first`, `:last`, `:equal`, `:distinct`
+- [x] `allows_count_change?` returns `true` (FR-13.2.7)
+- [x] `declared_reads(prefix_schema = {})`
+  - [x] Return all fields from prefix_schema (we're collapsing everything)
+- [x] `declared_sets(prefix_schema = {})`
+  - [x] Return all fields from prefix_schema after collapse
+  - [x] Change type to array for `:collect` and `:distinct` strategies
+  - [x] Include Link set operations and move targets
+- [x] `declared_deletes(prefix_schema = {})`
+  - [x] Include Link delete fields and move source fields
+- [x] `create` returns callable that:
+  - [x] Merges N namespaces into 1 (FR-13.2.1)
+  - [x] Applies per-field merge strategies (FR-13.2.2)
+  - [x] Defaults to `:equal` strategy (FR-13.2.3)
+  - [x] Implements all strategies:
+    - [x] `:collect` - gather all values into array
+    - [x] `:sum` - add numeric values
+    - [x] `:concat` - concatenate strings or arrays
+    - [x] `:first` - take first value
+    - [x] `:last` - take last value
+    - [x] `:equal` - all must match, raise ExecutionError otherwise
+    - [x] `:distinct` - all must be unique, raise ExecutionError on duplicates
+  - [x] Applies Link operations after merging (FR-13.2.6)
+  - [x] Handles nil/missing values appropriately
+  - [x] Returns single empty namespace for empty input
+
+**Requirements:** FR-13.2.1 through FR-13.2.7
+
+---
+
+### Task 21.3: Create Explode operation
+**File:** `lib/brainpipe/operations/explode.rb`
+
+Explode fans out array fields from 1 namespace into N namespaces.
+
+- [x] `initialize(model: nil, options: {})`
+  - [x] Parse `split:` option (required, FR-13.3.1)
+  - [x] Parse `on_empty:` option (`:skip` or `:error`, default `:skip`) (FR-13.3.6)
+  - [x] Parse Link options (`copy:`, `move:`, `set:`, `delete:`)
+  - [x] Normalize string keys to symbols
+  - [x] Raise `ConfigurationError` if `split:` not specified
+  - [x] Raise `ConfigurationError` for invalid `on_empty:` value
+- [x] `allows_count_change?` returns `true` (FR-13.3.7)
+- [x] `declared_reads(prefix_schema = {})`
+  - [x] Return split source fields
+  - [x] Look up types from prefix_schema
+- [x] `declared_sets(prefix_schema = {})`
+  - [x] Return split target fields with element type (unwrap array)
+  - [x] Include non-split fields from prefix_schema (implicitly copied) (FR-13.3.3)
+  - [x] Include Link set operations and move targets
+  - [x] Exclude split source fields from output
+- [x] `declared_deletes(prefix_schema = {})`
+  - [x] Include split source fields (they're transformed)
+  - [x] Include Link delete fields and move source fields
+- [x] `create` returns callable that:
+  - [x] Splits array fields into individual namespaces (FR-13.3.1)
+  - [x] Validates same cardinality for multiple split fields (FR-13.3.2)
+  - [x] Copies non-split fields to all output namespaces (FR-13.3.3)
+  - [x] Applies Link operations after splitting (FR-13.3.5)
+  - [x] Handles `on_empty: :skip` - returns empty array
+  - [x] Handles `on_empty: :error` - raises ExecutionError
+  - [x] Processes multiple input namespaces independently
+  - [x] Preserves complex values in split and copied fields
+
+**Requirements:** FR-13.3.1 through FR-13.3.7
+
+---
+
+### Task 21.4: Add requires
+**File:** `lib/brainpipe.rb`
+
+- [x] Add `require_relative "brainpipe/operations/link"`
+- [x] Add `require_relative "brainpipe/operations/collapse"`
+- [x] Add `require_relative "brainpipe/operations/explode"`
+
+---
+
+### Task 21.5: Mark deprecated operations
+**File:** `lib/brainpipe/operations/transform.rb`
+
+- [x] Add deprecation warning in initialize: "Transform is deprecated, use Link instead"
+
+**File:** `lib/brainpipe/operations/merge.rb`
+
+- [x] Add deprecation warning in initialize: "Merge is deprecated, use Collapse instead"
+
+---
+
+### Task 21.6: Run existing specs
+**Files:** Spec files already staged
+
+- [x] Run `bundle exec rspec spec/brainpipe/operations/link_spec.rb`
+- [x] Run `bundle exec rspec spec/brainpipe/operations/collapse_spec.rb`
+- [x] Run `bundle exec rspec spec/brainpipe/operations/explode_spec.rb`
+- [x] Ensure all specs pass
+
+---
+
+### Task 21.7: Integration tests
+
+- [ ] Create integration test with Link in a pipe
+- [ ] Create integration test with Collapse in a pipe
+- [ ] Create integration test with Explode in a pipe
+- [ ] Test Collapse followed by Explode (round-trip)
+- [ ] Test Explode followed by Collapse (fan-out then merge back)
+
+---
+
+### Task 21.8: Update README documentation
+**File:** `README.md`
+
+- [ ] Add Link operation documentation (replace Transform section)
+- [ ] Add Collapse operation documentation (replace Merge section)
+- [ ] Add Explode operation documentation
+- [ ] Add deprecation notices for Transform and Merge
+- [ ] Update Built-in Operations section to list new operations first
+
+---
+
+## Phase Summary (21)
+
+| Phase | Description | Test Command |
+|-------|-------------|--------------|
+| 21 | Transformation Ops | `bundle exec rspec spec/brainpipe/operations/{link,collapse,explode}_spec.rb` |
+
+**Full test suite:** `bundle exec rspec`
+
+---
+
+## Implementation Notes (Phase 21)
+
+### Link Operation Design
+
+The Link operation is the foundation for property manipulation:
+- **copy**: Duplicates a field to a new name (source preserved)
+- **move**: Moves a field to a new name (source deleted)
+- **set**: Sets constant values
+- **delete**: Removes fields
+
+Operation order (copy → move → set → delete) is critical:
+1. Copy first allows backing up a field before moving it
+2. Move second so targets exist for set/delete
+3. Set third to override any values
+4. Delete last to clean up after all other operations
+
+### Collapse Strategy Semantics
+
+| Strategy | Behavior | Output Type |
+|----------|----------|-------------|
+| `:collect` | Gather all values | Array of input type |
+| `:sum` | Add numbers | Same numeric type |
+| `:concat` | Join strings/arrays | String or Array |
+| `:first` | Take first value | Same as input |
+| `:last` | Take last value | Same as input |
+| `:equal` | All must match | Same as input |
+| `:distinct` | All unique | Array of input type |
+
+### Explode Cardinality Validation
+
+When multiple fields are split, they must have the same array length:
+```ruby
+split: { results: :result, images: :image }
+# results.length must equal images.length
+```
+
+This ensures proper 1:1 mapping across split fields.
+
+### Integration with Stage Modes
+
+Count-changing operations (Collapse, Explode, Filter) should typically be:
+- Alone in their stage
+- Not mixed with parallel operations
+- FR-2.14 suggests warning/error when violated
+
+---
+
 ## Final Tasks
 
 - [ ] Review all public API for consistency

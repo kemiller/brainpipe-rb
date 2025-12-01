@@ -48,7 +48,9 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-2.9: Each pipe execution MUST receive fresh executor instances from operations
 - FR-2.10: In fan-out mode, each parallel branch MUST receive its own executor instance
 - FR-2.11: Executors MUST always receive an array of namespaces (even if single element)
-- FR-2.12: Executors MUST always return an array of namespaces (same count as input)
+- FR-2.12: Executors MUST always return an array of namespaces (same count as input, unless allows_count_change?)
+- FR-2.13: An operation MAY declare it changes namespace count via `allows_count_change?` returning true
+- FR-2.14: Operations that change namespace count (Collapse, Explode, Filter) SHOULD be alone in their stage
 
 ### FR-3: Property Namespace
 
@@ -174,6 +176,46 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-9.3: Operations MAY declare a timeout duration
 - FR-9.4: Timeout expiration MUST raise a TimeoutError
 - FR-9.5: LLM call timeouts SHOULD be configured via model configs (BAML client level)
+
+### FR-13: Built-in Transformation Operations
+
+The library provides three unified operations for namespace property manipulation, replacing ad-hoc stage modes and fragmented operation configs.
+
+#### FR-13.1: Link Operation
+
+Link rewires namespace properties without changing namespace count.
+
+- FR-13.1.1: Link MUST support copying fields (source preserved)
+- FR-13.1.2: Link MUST support moving fields (source deleted)
+- FR-13.1.3: Link MUST support setting constant values
+- FR-13.1.4: Link MUST support deleting fields
+- FR-13.1.5: Link MUST maintain 1:1 namespace count
+- FR-13.1.6: Link MUST require at least one operation (copy, move, set, or delete)
+- FR-13.1.7: Link MUST apply operations in order: copy → move → set → delete
+
+#### FR-13.2: Collapse Operation
+
+Collapse merges N namespaces into 1 with configurable per-field merge strategies.
+
+- FR-13.2.1: Collapse MUST merge N namespaces into 1
+- FR-13.2.2: Collapse MUST support per-field merge strategies via `merge:` option
+- FR-13.2.3: Collapse MUST default to `:equal` strategy (error on conflicting values)
+- FR-13.2.4: Collapse MUST support strategies: `:collect`, `:sum`, `:concat`, `:first`, `:last`, `:equal`, `:distinct`
+- FR-13.2.5: Collapse MUST include all Link capabilities (copy, move, set, delete)
+- FR-13.2.6: Collapse MUST apply Link operations after merging
+- FR-13.2.7: Collapse MUST declare `allows_count_change?` returning true
+
+#### FR-13.3: Explode Operation
+
+Explode fans out array fields from 1 namespace into N namespaces.
+
+- FR-13.3.1: Explode MUST split array fields specified in `split:` option
+- FR-13.3.2: Explode MUST validate same cardinality for multiple split fields
+- FR-13.3.3: Explode MUST implicitly copy non-split fields to all output namespaces
+- FR-13.3.4: Explode MUST include all Link capabilities (copy, move, set, delete)
+- FR-13.3.5: Explode MUST apply Link operations after splitting
+- FR-13.3.6: Explode MUST support `on_empty:` option with values `:skip` (default) or `:error`
+- FR-13.3.7: Explode MUST declare `allows_count_change?` returning true
 
 ---
 
