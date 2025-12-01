@@ -28,6 +28,7 @@ require_relative "brainpipe/stage"
 require_relative "brainpipe/pipe"
 require_relative "brainpipe/configuration"
 require_relative "brainpipe/loader"
+require_relative "brainpipe/rails" if defined?(::Rails::Railtie)
 
 # Brainpipe is a Ruby gem for building type-safe, observable LLM pipelines.
 #
@@ -77,6 +78,15 @@ module Brainpipe
       raise ConfigurationError, "Brainpipe.load! must be called before accessing pipes" unless @loaded
       @pipes ||= {}
       @pipes[name.to_sym] or raise MissingPipeError, "Pipe '#{name}' not found"
+    end
+
+    # Get all loaded pipe names.
+    # @raise [ConfigurationError] if load! was not called
+    # @return [Array<Symbol>]
+    def pipe_names
+      raise ConfigurationError, "Brainpipe.load! must be called before accessing pipes" unless @loaded
+      @pipes ||= {}
+      @pipes.keys
     end
 
     # Get a named model configuration.

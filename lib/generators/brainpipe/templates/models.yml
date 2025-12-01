@@ -1,0 +1,27 @@
+# Brainpipe Model Configuration
+#
+# Define your LLM models here. Each model needs a provider, model name, and capabilities.
+#
+# Example:
+#
+# models:
+#   gpt4:
+#     provider: openai
+#     model: gpt-4
+#     capabilities:
+#       - text_to_text
+#     options:
+#       temperature: 0.7
+#
+#   claude:
+#     provider: anthropic
+#     model: claude-3-opus-20240229
+#     capabilities:
+#       - text_to_text
+#       - image_to_text
+#
+# Supported providers: openai, anthropic, google_ai
+# Supported capabilities: text_to_text, image_to_text
+
+models:
+  # Add your models here

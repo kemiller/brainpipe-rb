@@ -1,6 +1,6 @@
 module Brainpipe
   class Configuration
-    attr_accessor :config_path, :debug, :metrics_collector, :max_threads, :thread_pool_timeout
+    attr_accessor :config_path, :debug, :metrics_collector, :max_threads, :thread_pool_timeout, :skip_zeitwerk
     attr_reader :model_registry, :operation_registry, :autoload_paths
 
     def initialize
@@ -13,6 +13,7 @@ module Brainpipe
       @model_registry = ModelRegistry.new
       @operation_registry = {}
       @autoload_paths = []
+      @skip_zeitwerk = false
     end
 
     def secret_resolver=(resolver)
@@ -63,6 +64,7 @@ module Brainpipe
       @secret_resolver_proc = nil
       @max_threads = 10
       @thread_pool_timeout = 60
+      @skip_zeitwerk = false
       @model_registry.clear!
       @operation_registry.clear
       @autoload_paths.clear

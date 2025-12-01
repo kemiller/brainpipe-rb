@@ -11,7 +11,7 @@ module Brainpipe
     end
 
     def load!
-      setup_zeitwerk(configuration.autoload_paths)
+      setup_zeitwerk(configuration.autoload_paths) unless configuration.skip_zeitwerk
       load_config_file if configuration.config_path
       load_pipes
     end

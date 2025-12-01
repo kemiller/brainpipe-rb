@@ -1,0 +1,8 @@
+name: echo
+timeout: 30
+
+stages:
+  - name: process
+    mode: merge
+    operations:
+      - EchoOperation
