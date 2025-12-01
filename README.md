@@ -33,9 +33,10 @@ config/brainpipe/
     └── my_pipeline.yml # Pipeline definitions (one per file)
 ```
 
-### 1. Define Models (`config/brainpipe/config.yml`)
+### 1. Define Models
 
 ```yaml
+# config.yaml
 models:
   openai:
     provider: openai
@@ -54,9 +55,10 @@ models:
       api_key: ${ANTHROPIC_API_KEY}
 ```
 
-### 2. Define a Pipeline (`config/brainpipe/pipes/entity_extractor.yml`)
+### 2. Define a Pipeline
 
 ```yaml
+# pipes/entity_extractor.yml
 name: entity_extractor
 
 stages:
