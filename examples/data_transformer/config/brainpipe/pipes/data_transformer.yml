@@ -1,0 +1,47 @@
+name: data_transformer
+
+stages:
+  - name: explode_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Explode
+        options:
+          split:
+            order_ids: order_id
+            products: product
+            quantities: quantity
+            prices: price
+
+  - name: enrich_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Link
+        options:
+          copy:
+            product: product_name
+          set:
+            currency: "USD"
+
+  - name: collapse_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Collapse
+        options:
+          merge:
+            order_id: collect
+            product: collect
+            quantity: sum
+            price: collect
+            product_name: collect
+            currency: equal
+
+  - name: finalize
+    mode: merge
+    operations:
+      - type: Brainpipe::Operations::Link
+        options:
+          move:
+            order_id: unique_orders
+            quantity: total_quantity
+          delete:
+            - product_name
