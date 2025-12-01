@@ -364,7 +364,7 @@ end
 
 ### Link
 
-Copy, move, set, or delete properties (preferred over Transform):
+Copy, move, set, or delete properties:
 
 ```ruby
 Brainpipe::Operations::Link.new(
