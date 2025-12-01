@@ -87,4 +87,13 @@ module Brainpipe
   Optional = Types::Optional
   Enum = Types::Enum
   Union = Types::Union
+
+  module TypeConstants
+    Any = Types::Any
+    Boolean = Types::Boolean
+    Optional = Types::Optional
+    Enum = Types::Enum
+    Union = Types::Union
+    Image = Brainpipe::Image
+  end
 end

@@ -4,7 +4,7 @@ stages:
   - name: extract
     mode: merge
     operations:
-      - type: Brainpipe::Operations::LlmCall
+      - type: LlmCall
         model: openai
         options:
           capability: text_to_text

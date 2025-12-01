@@ -63,7 +63,7 @@ stages:
   - name: extract
     mode: merge
     operations:
-      - type: Brainpipe::Operations::LlmCall
+      - type: LlmCall
         model: openai
         options:
           capability: text_to_text
@@ -146,14 +146,14 @@ stages:
 
 | Operation | Purpose |
 |-----------|---------|
-| `Brainpipe::Operations::LlmCall` | Generic LLM call with prompt templates |
-| `Brainpipe::Operations::Baml` | BAML function calls with structured I/O |
-| `Brainpipe::Operations::Explode` | Split arrays into multiple namespaces |
-| `Brainpipe::Operations::Collapse` | Merge namespaces back into arrays |
-| `Brainpipe::Operations::Link` | Copy, move, set, or delete properties |
-| `Brainpipe::Operations::Filter` | Keep/drop namespaces based on conditions |
-| `Brainpipe::Operations::Merge` | Combine multiple properties into one |
-| `Brainpipe::Operations::Log` | Debug logging |
+| `LlmCall` | Generic LLM call with prompt templates |
+| `Baml` | BAML function calls with structured I/O |
+| `Explode` | Split arrays into multiple namespaces |
+| `Collapse` | Merge namespaces back into arrays |
+| `Link` | Copy, move, set, or delete properties |
+| `Filter` | Keep/drop namespaces based on conditions |
+| `Merge` | Combine multiple properties into one |
+| `Log` | Debug logging |
 
 ### Data Transformation Example
 
@@ -166,7 +166,7 @@ stages:
   - name: explode_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Explode
+      - type: Explode
         options:
           split:
             order_ids: order_id
@@ -176,7 +176,7 @@ stages:
   - name: enrich_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Link
+      - type: Link
         options:
           copy:
             product: product_name
@@ -186,7 +186,7 @@ stages:
   - name: collapse_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Collapse
+      - type: Collapse
         options:
           merge:
             order_id: collect
@@ -342,19 +342,20 @@ result = pipe.call(input: "data")
 
 ## Type System
 
-Brainpipe includes a robust type system:
+Brainpipe includes a robust type system. Operation subclasses have access to type constants without the `Brainpipe::` prefix:
 
 ```ruby
 class TypedOperation < Brainpipe::Operation
   reads :name, String
   reads :age, Integer
-  reads :active, Brainpipe::Boolean
+  reads :active, Boolean                          # Brainpipe::Boolean
   reads :tags, [String]                           # Array of strings
   reads :scores, { String => Integer }            # Hash with typed keys/values
-  reads :status, Brainpipe::Enum[:active, :inactive]
-  reads :value, Brainpipe::Union[String, Integer]
-  reads :maybe, Brainpipe::Optional[String]       # nil allowed
-  reads :anything, Brainpipe::Any                 # Any type
+  reads :status, Enum[:active, :inactive]         # Brainpipe::Enum
+  reads :value, Union[String, Integer]            # Brainpipe::Union
+  reads :maybe, Optional[String]                  # Brainpipe::Optional (nil allowed)
+  reads :anything, Any                            # Brainpipe::Any
+  reads :photo, Image                             # Brainpipe::Image
 
   sets :result, { name: String, count: Integer }  # Object structure
 end
@@ -380,7 +381,7 @@ Brainpipe::Operations::Link.new(
 In YAML config:
 
 ```yaml
-- type: Brainpipe::Operations::Link
+- type: Link
   options:
     copy:
       product: product_name
@@ -475,7 +476,7 @@ Brainpipe::Operations::Log.new(
 Generic LLM calls with prompt templates (Mustache format):
 
 ```yaml
-- type: Brainpipe::Operations::LlmCall
+- type: LlmCall
   model: openai
   options:
     capability: text_to_text
@@ -495,7 +496,7 @@ Brainpipe integrates with [BAML](https://github.com/BoundaryML/baml) for type-sa
 In YAML config:
 
 ```yaml
-- type: Brainpipe::Operations::Baml
+- type: Baml
   model: openai
   options:
     function: ExtractEntities

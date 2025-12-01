@@ -4,7 +4,7 @@ stages:
   - name: explode_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Explode
+      - type: Explode
         options:
           split:
             order_ids: order_id
@@ -15,7 +15,7 @@ stages:
   - name: enrich_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Link
+      - type: Link
         options:
           copy:
             product: product_name
@@ -25,7 +25,7 @@ stages:
   - name: collapse_items
     mode: batch
     operations:
-      - type: Brainpipe::Operations::Collapse
+      - type: Collapse
         options:
           merge:
             order_id: collect
@@ -38,7 +38,7 @@ stages:
   - name: finalize
     mode: merge
     operations:
-      - type: Brainpipe::Operations::Link
+      - type: Link
         options:
           move:
             order_id: unique_orders

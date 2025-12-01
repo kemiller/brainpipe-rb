@@ -24,8 +24,11 @@ module Brainpipe
   #   end
   #
   class Operation
+    include TypeConstants
+
     class << self
       def inherited(subclass)
+        subclass.include(TypeConstants)
         subclass.instance_variable_set(:@_reads, {})
         subclass.instance_variable_set(:@_sets, {})
         subclass.instance_variable_set(:@_deletes, [])

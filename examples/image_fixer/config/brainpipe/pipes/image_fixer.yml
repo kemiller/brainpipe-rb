@@ -4,7 +4,7 @@ stages:
   - name: analyze
     mode: merge
     operations:
-      - type: Brainpipe::Operations::Baml
+      - type: Baml
         model: gemini
         options:
           function: AnalyzeImageProblems
@@ -17,7 +17,7 @@ stages:
   - name: fix
     mode: merge
     operations:
-      - type: Brainpipe::Operations::BamlRaw
+      - type: BamlRaw
         model: gemini_flash_image
         options:
           function: FixImageProblems
