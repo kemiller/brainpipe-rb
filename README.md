@@ -22,6 +22,183 @@ Or install it yourself as:
 
 ## Quick Start
 
+The preferred way to define pipelines is through YAML configuration files.
+
+### Directory Structure
+
+```
+config/brainpipe/
+├── config.yml          # Model definitions
+└── pipes/
+    └── my_pipeline.yml # Pipeline definitions (one per file)
+```
+
+### 1. Define Models (`config/brainpipe/config.yml`)
+
+```yaml
+models:
+  openai:
+    provider: openai
+    model: gpt-4o-mini
+    capabilities:
+      - text_to_text
+    options:
+      api_key: ${OPENAI_API_KEY}
+
+  anthropic:
+    provider: anthropic
+    model: claude-3-haiku-20240307
+    capabilities:
+      - text_to_text
+    options:
+      api_key: ${ANTHROPIC_API_KEY}
+```
+
+### 2. Define a Pipeline (`config/brainpipe/pipes/entity_extractor.yml`)
+
+```yaml
+name: entity_extractor
+
+stages:
+  - name: extract
+    mode: merge
+    operations:
+      - type: Brainpipe::Operations::LlmCall
+        model: openai
+        options:
+          capability: text_to_text
+          prompt_file: ../prompts/extract_entities.mustache
+          inputs:
+            input_text: String
+            entity_types: Array
+          outputs:
+            entities: Array
+            summary: String
+```
+
+### 3. Load and Run
+
+```ruby
+require 'brainpipe'
+
+Brainpipe.configure do |config|
+  config.config_path = "config/brainpipe"
+end
+
+Brainpipe.load!
+
+pipe = Brainpipe.pipe(:entity_extractor)
+result = pipe.call(
+  input_text: "John Smith works at Acme Corp in New York.",
+  entity_types: ["PERSON", "ORGANIZATION", "LOCATION"]
+)
+
+puts result[:entities]
+puts result[:summary]
+```
+
+## Configuration Files
+
+### Model Configuration
+
+The `config.yml` file defines all available models:
+
+```yaml
+debug: true  # Optional: enable debug output
+
+models:
+  model_name:
+    provider: openai|anthropic|google-ai
+    model: "model-identifier"
+    capabilities:
+      - text_to_text
+      - image_to_text
+      - image_edit
+      - text_to_image
+    options:
+      api_key: ${ENV_VAR_NAME}
+      # Provider-specific options
+```
+
+Environment variables use `${VAR_NAME}` syntax and are resolved at load time.
+
+### Pipeline Configuration
+
+Each file in `pipes/` defines one pipeline:
+
+```yaml
+name: pipeline_name
+timeout: 30  # Optional: global timeout in seconds
+
+stages:
+  - name: stage_name
+    mode: merge|fan_out|batch
+    merge_strategy: last_in|first_in|collate|disjoint  # Optional
+    timeout: 10  # Optional: stage-specific timeout
+    operations:
+      - type: OperationClassName
+        model: model_name  # Optional: which model to use
+        options:
+          # Operation-specific configuration
+```
+
+### Built-in Operations for Config Files
+
+| Operation | Purpose |
+|-----------|---------|
+| `Brainpipe::Operations::LlmCall` | Generic LLM call with prompt templates |
+| `Brainpipe::Operations::Baml` | BAML function calls with structured I/O |
+| `Brainpipe::Operations::Explode` | Split arrays into multiple namespaces |
+| `Brainpipe::Operations::Collapse` | Merge namespaces back into arrays |
+| `Brainpipe::Operations::Link` | Copy, move, set, or delete properties |
+| `Brainpipe::Operations::Filter` | Keep/drop namespaces based on conditions |
+| `Brainpipe::Operations::Merge` | Combine multiple properties into one |
+| `Brainpipe::Operations::Log` | Debug logging |
+
+### Data Transformation Example
+
+A pipeline using only data operations (no LLM):
+
+```yaml
+name: data_transformer
+
+stages:
+  - name: explode_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Explode
+        options:
+          split:
+            order_ids: order_id
+            products: product
+            quantities: quantity
+
+  - name: enrich_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Link
+        options:
+          copy:
+            product: product_name
+          set:
+            currency: "USD"
+
+  - name: collapse_items
+    mode: batch
+    operations:
+      - type: Brainpipe::Operations::Collapse
+        options:
+          merge:
+            order_id: collect
+            product: collect
+            quantity: sum
+            currency: equal
+```
+
+## Programmatic Definition
+
+For dynamic pipelines or custom operations, use the programmatic API:
+
 ```ruby
 require 'brainpipe'
 
@@ -42,7 +219,6 @@ class SummarizeText < Brainpipe::Operation
   requires_model :text_to_text
 
   execute do |ns|
-    # Your LLM call here
     { summary: "Summary of: #{ns[:text]}" }
   end
 end
@@ -186,15 +362,71 @@ end
 
 ## Built-in Operations
 
-### Transform
+### Link
 
-Rename or copy properties:
+Copy, move, set, or delete properties (preferred over Transform):
 
 ```ruby
-Brainpipe::Operations::Transform.new(
-  options: { from: :old_name, to: :new_name, delete_source: true }
+Brainpipe::Operations::Link.new(
+  options: {
+    copy: { source_field: :target_field },     # Copy value
+    move: { old_name: :new_name },             # Rename/move property
+    set: { new_field: "constant value" },      # Set constant
+    delete: [:unwanted_field]                  # Remove properties
+  }
 )
 ```
+
+In YAML config:
+
+```yaml
+- type: Brainpipe::Operations::Link
+  options:
+    copy:
+      product: product_name
+    move:
+      old_key: new_key
+    set:
+      currency: "USD"
+    delete:
+      - temp_field
+```
+
+### Explode
+
+Split array properties into multiple namespaces (for parallel processing):
+
+```ruby
+Brainpipe::Operations::Explode.new(
+  options: {
+    split: {
+      items: :item,        # Array field => singular field name
+      prices: :price
+    }
+  }
+)
+```
+
+Input: `{ items: ["a", "b"], prices: [10, 20] }`
+Output: `[{ item: "a", price: 10 }, { item: "b", price: 20 }]`
+
+### Collapse
+
+Merge multiple namespaces back into arrays:
+
+```ruby
+Brainpipe::Operations::Collapse.new(
+  options: {
+    merge: {
+      item: :collect,      # Collect all values into array
+      quantity: :sum,      # Sum numeric values
+      currency: :equal     # Assert all values are equal, keep one
+    }
+  }
+)
+```
+
+Strategies: `:collect` (array), `:sum` (add numbers), `:equal` (assert same value)
 
 ### Filter
 
@@ -238,18 +470,50 @@ Brainpipe::Operations::Log.new(
 )
 ```
 
+### LlmCall
+
+Generic LLM calls with prompt templates (Mustache format):
+
+```yaml
+- type: Brainpipe::Operations::LlmCall
+  model: openai
+  options:
+    capability: text_to_text
+    prompt_file: prompts/summarize.mustache
+    inputs:
+      document: String
+    outputs:
+      summary: String
+```
+
+The prompt file uses Mustache templating with access to namespace fields.
+
 ## BAML Integration
 
-Brainpipe integrates with [BAML](https://github.com/BoundaryML/baml) for type-safe LLM function calls:
+Brainpipe integrates with [BAML](https://github.com/BoundaryML/baml) for type-safe LLM function calls.
+
+In YAML config:
+
+```yaml
+- type: Brainpipe::Operations::Baml
+  model: openai
+  options:
+    function: ExtractEntities
+    inputs:
+      text: document           # Map namespace field to BAML input
+    outputs:
+      entities: extracted      # Map BAML output to namespace field
+```
+
+Programmatically:
 
 ```ruby
-# Requires baml gem to be installed
 Brainpipe::Operations::Baml.new(
   model: my_model,
   options: {
     function: :ExtractEntities,
-    inputs: { text: :document },        # Map namespace fields to BAML inputs
-    outputs: { entities: :extracted }   # Map BAML outputs to namespace fields
+    inputs: { text: :document },
+    outputs: { entities: :extracted }
   }
 )
 ```
@@ -388,6 +652,64 @@ Brainpipe.load!
 # Access loaded pipes and models
 pipe = Brainpipe.pipe(:my_pipeline)
 model = Brainpipe.model(:gpt4)
+```
+
+## Rails Integration
+
+Brainpipe includes a Rails engine that auto-configures everything.
+
+### Setup
+
+Add to your Gemfile:
+
+```ruby
+gem 'brainpipe'
+```
+
+The railtie automatically:
+- Sets `config_path` to `config/brainpipe/`
+- Adds `app/operations/` and `app/pipelines/` to autoload paths
+- Enables debug mode in development
+- Reloads pipelines on code changes in development
+
+### Configuration
+
+Customize in `config/initializers/brainpipe.rb`:
+
+```ruby
+Rails.application.config.brainpipe.tap do |config|
+  config.config_path = "config/brainpipe"  # Default
+  config.debug = true
+  config.expose_pipes = :all               # Or array of pipe names
+  config.autoload_paths << "lib/operations"
+end
+```
+
+### Custom Operations
+
+Place custom operations in `app/operations/`:
+
+```ruby
+# app/operations/summarize_operation.rb
+class SummarizeOperation < Brainpipe::Operation
+  reads :text, String
+  sets :summary, String
+
+  execute do |ns|
+    { summary: "Summary: #{ns[:text]}" }
+  end
+end
+```
+
+Reference in pipeline configs by class name:
+
+```yaml
+# config/brainpipe/pipes/my_pipe.yml
+stages:
+  - name: summarize
+    mode: merge
+    operations:
+      - type: SummarizeOperation
 ```
 
 ## Error Classes
