@@ -177,7 +177,6 @@ RSpec.describe Brainpipe::Loader do
         name: my_pipe
         stages:
           - name: stage1
-            mode: merge
             operations:
               - type: test_op
       YAML
@@ -194,7 +193,6 @@ RSpec.describe Brainpipe::Loader do
       yaml = <<~YAML
         stages:
           - name: stage1
-            mode: merge
             operations:
               - type: test_op
       YAML
@@ -232,7 +230,6 @@ RSpec.describe Brainpipe::Loader do
     it "builds a stage with operations" do
       yaml_hash = {
         "name" => "my_stage",
-        "mode" => "merge",
         "operations" => [
           { "type" => "test_op" }
         ]
@@ -240,35 +237,11 @@ RSpec.describe Brainpipe::Loader do
 
       stage = loader.build_stage(yaml_hash)
       expect(stage.name).to eq(:my_stage)
-      expect(stage.mode).to eq(:merge)
       expect(stage.operations.length).to eq(1)
-    end
-
-    it "defaults mode to merge" do
-      yaml_hash = {
-        "name" => "my_stage",
-        "operations" => [{ "type" => "test_op" }]
-      }
-
-      stage = loader.build_stage(yaml_hash)
-      expect(stage.mode).to eq(:merge)
-    end
-
-    it "accepts merge_strategy" do
-      yaml_hash = {
-        "name" => "my_stage",
-        "mode" => "merge",
-        "merge_strategy" => "first_in",
-        "operations" => [{ "type" => "test_op" }]
-      }
-
-      stage = loader.build_stage(yaml_hash)
-      expect(stage.merge_strategy).to eq(:first_in)
     end
 
     it "raises InvalidYAMLError for missing stage name" do
       yaml_hash = {
-        "mode" => "merge",
         "operations" => [{ "type" => "test_op" }]
       }
 
@@ -280,7 +253,6 @@ RSpec.describe Brainpipe::Loader do
     it "accepts timeout" do
       yaml_hash = {
         "name" => "my_stage",
-        "mode" => "merge",
         "timeout" => 30,
         "operations" => [{ "type" => "test_op" }]
       }
@@ -292,7 +264,6 @@ RSpec.describe Brainpipe::Loader do
     it "defaults timeout to nil" do
       yaml_hash = {
         "name" => "my_stage",
-        "mode" => "merge",
         "operations" => [{ "type" => "test_op" }]
       }
 
@@ -477,7 +448,6 @@ RSpec.describe Brainpipe::Loader do
         name: pipe1
         stages:
           - name: stage1
-            mode: merge
             operations:
               - type: test_op
       YAML
@@ -486,7 +456,6 @@ RSpec.describe Brainpipe::Loader do
         name: pipe2
         stages:
           - name: stage1
-            mode: merge
             operations:
               - type: test_op
       YAML
@@ -615,7 +584,6 @@ RSpec.describe "Full integration" do
       name: test_pipe
       stages:
         - name: transform
-          mode: merge
           operations:
             - type: transformer
     YAML

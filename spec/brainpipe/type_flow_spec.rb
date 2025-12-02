@@ -65,7 +65,6 @@ RSpec.describe "Type Flow" do
 
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [op1, op2]
       )
 
@@ -85,7 +84,6 @@ RSpec.describe "Type Flow" do
 
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [Op1.new, Op2.new]
       )
 
@@ -104,7 +102,6 @@ RSpec.describe "Type Flow" do
 
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [op1, op2]
       )
 
@@ -122,7 +119,6 @@ RSpec.describe "Type Flow" do
 
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [op1, op2]
       )
 
@@ -141,7 +137,6 @@ RSpec.describe "Type Flow" do
       op = op_class.new
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [op]
       )
 
@@ -172,7 +167,6 @@ RSpec.describe "Type Flow" do
 
       stage = Brainpipe::Stage.new(
         name: :test,
-        mode: :merge,
         operations: [op]
       )
 

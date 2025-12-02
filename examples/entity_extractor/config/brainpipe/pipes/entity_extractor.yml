@@ -2,7 +2,6 @@ name: entity_extractor
 
 stages:
   - name: extract
-    mode: merge
     operations:
       - type: LlmCall
         model: openai

@@ -46,7 +46,7 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-2.7: An operation MAY declare error handling via boolean or conditional function (does not halt the pipe if ignored)
 - FR-2.8: Operations are factories: configured at config load time, they produce executors on demand
 - FR-2.9: Each pipe execution MUST receive fresh executor instances from operations
-- FR-2.10: In fan-out mode, each parallel branch MUST receive its own executor instance
+- FR-2.10: Each parallel operation instance MUST receive its own executor instance
 - FR-2.11: Executors MUST always receive an array of namespaces (even if single element)
 - FR-2.12: Executors MUST always return an array of namespaces (same count as input, unless allows_count_change?)
 - FR-2.13: An operation MAY declare it changes namespace count via `allows_count_change?` returning true
@@ -58,38 +58,19 @@ A shared key-value store accessible to all operations within a pipe execution.
 - FR-3.2: Properties MUST have associated type expectations when reading or setting
 - FR-3.3: The namespace MUST be shared across all operations within a pipe execution
 - FR-3.4: Property type compatibility MUST be validated at config load time
-- FR-3.5: In fan-out mode, each parallel execution MUST receive an isolated copy of the namespace
-- FR-3.6: After fan-out completion, isolated namespaces MUST be collected into an array of property sets
+- FR-3.5: Each parallel operation execution MUST receive an isolated copy of the namespace
+- FR-3.6: Parallel operation results MUST be collected into an array of property sets
 
 ### FR-4: Stage
 
 - FR-4.1: A stage MUST contain one or more operations
 - FR-4.2: A stage MUST receive an array of property sets as input
-- FR-4.3: A stage MUST support the following execution modes:
-
-#### FR-4.3.1: Merge Mode
-- Merge all property sets in the input array (last value wins for conflicts)
-- Execute each operation in the stage with the merged property set
-
-#### FR-4.3.2: Fan-Out Mode
-- Each property set in the input array is sent to a distinct instance of each operation
-- Operations SHOULD execute concurrently (real threads preferred; green threads/async acceptable)
-
-#### FR-4.3.3: Batch Mode
-- The entire input array is passed as-is to each operation
-- Operations receive the full array and handle iteration internally
-
-#### FR-4.4: Stage Output Contracts
-- FR-4.4.1: A stage in merge mode MUST output a single property set
-- FR-4.4.2: A stage in fan-out mode MUST output an array of property sets (one per input)
-- FR-4.4.3: A stage in batch mode MUST output based on operation's declared output type
-- FR-4.4.4: The last stage in a pipe MUST use merge mode to satisfy FR-1.5 (single output)
+- FR-4.3: A stage MUST pass the input array to each operation
+- FR-4.4: A stage MUST return an array of property sets as output
 
 #### FR-4.5: Parallel Execution
 - FR-4.5.1: All operations within a stage MUST execute in parallel
 - FR-4.5.2: Sequential operation execution MUST use separate stages
-- FR-4.5.3: A stage MUST define a merge strategy for combining parallel operation outputs
-- FR-4.5.4: Supported merge strategies: last_in (default), first_in, collate, disjoint
 
 #### FR-4.6: Empty Input
 - FR-4.6.1: A stage receiving an empty array MUST raise an error (empty input is invalid)
@@ -179,7 +160,7 @@ A shared key-value store accessible to all operations within a pipe execution.
 
 ### FR-13: Built-in Transformation Operations
 
-The library provides three unified operations for namespace property manipulation, replacing ad-hoc stage modes and fragmented operation configs.
+The library provides three unified operations for namespace property manipulation.
 
 #### FR-13.1: Link Operation
 

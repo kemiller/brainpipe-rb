@@ -29,8 +29,8 @@ module Brainpipe
         end
       end
 
-      def stage_start(stage_name, mode, namespace_count)
-        log "├─ Stage '#{stage_name}' (#{mode}) started with #{namespace_count} namespace(s)"
+      def stage_start(stage_name, namespace_count)
+        log "├─ Stage '#{stage_name}' started with #{namespace_count} namespace(s)"
       end
 
       def stage_end(stage_name, duration_ms)

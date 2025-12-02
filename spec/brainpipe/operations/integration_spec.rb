@@ -7,7 +7,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :transform,
-        mode: :merge,
         operations: [transform]
       )
 
@@ -33,13 +32,11 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage1 = Brainpipe::Stage.new(
         name: :first,
-        mode: :merge,
         operations: [transform1]
       )
 
       stage2 = Brainpipe::Stage.new(
         name: :second,
-        mode: :merge,
         operations: [transform2]
       )
 
@@ -88,7 +85,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :merge,
-        mode: :merge,
         operations: [merge]
       )
 
@@ -116,7 +112,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :sum,
-        mode: :merge,
         operations: [merge]
       )
 
@@ -151,7 +146,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :process,
-        mode: :merge,
         operations: [log, passthrough]
       )
 
@@ -183,13 +177,11 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage1 = Brainpipe::Stage.new(
         name: :transform,
-        mode: :merge,
         operations: [transform]
       )
 
       stage2 = Brainpipe::Stage.new(
         name: :merge,
-        mode: :merge,
         operations: [merge]
       )
 
@@ -203,7 +195,7 @@ RSpec.describe "Built-in Operations Integration" do
       expect(result[:full_name]).to eq("test_test")
     end
 
-    it "parallel operations with disjoint strategy" do
+    it "parallel operations" do
       transform1 = Brainpipe::Operations::Transform.new(
         options: { from: :input, to: :output_a }
       )
@@ -214,8 +206,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :parallel,
-        mode: :merge,
-        merge_strategy: :disjoint,
         operations: [transform1, transform2]
       )
 
@@ -260,7 +250,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :summarize,
-        mode: :merge,
         operations: [baml_op]
       )
 
@@ -287,13 +276,11 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage1 = Brainpipe::Stage.new(
         name: :transform,
-        mode: :merge,
         operations: [transform]
       )
 
       stage2 = Brainpipe::Stage.new(
         name: :summarize,
-        mode: :merge,
         operations: [baml_op]
       )
 
@@ -331,7 +318,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :translate,
-        mode: :merge,
         operations: [baml_op]
       )
 
@@ -362,7 +348,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :conflicting,
-        mode: :merge,
         operations: [StringOp.new, IntegerOp.new]
       )
 
@@ -387,7 +372,6 @@ RSpec.describe "Built-in Operations Integration" do
 
       stage = Brainpipe::Stage.new(
         name: :compatible,
-        mode: :merge,
         operations: [op1, op2]
       )
 

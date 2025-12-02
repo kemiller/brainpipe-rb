@@ -61,11 +61,10 @@ RSpec.describe Brainpipe::Observability::Debug do
   end
 
   describe "#stage_start" do
-    it "outputs stage started message with mode" do
-      debugger.stage_start(:process, :merge, 3)
+    it "outputs stage started message" do
+      debugger.stage_start(:process, 3)
 
       expect(output.string).to include("Stage 'process'")
-      expect(output.string).to include("(merge)")
       expect(output.string).to include("3 namespace(s)")
     end
   end

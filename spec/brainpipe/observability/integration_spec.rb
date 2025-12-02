@@ -13,12 +13,10 @@ RSpec.describe "Observability Integration" do
     op_class.new
   end
 
-  def create_stage(name:, mode:, operations:)
+  def create_stage(name:, operations:)
     Brainpipe::Stage.new(
       name: name,
-      mode: mode,
-      operations: operations,
-      merge_strategy: :last_in
+      operations: operations
     )
   end
 
@@ -57,7 +55,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({ input: "hello" }, metrics_collector: collector)
@@ -73,7 +71,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({ input: "hello" }, metrics_collector: collector)
@@ -88,7 +86,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({ input: "hello" }, metrics_collector: collector)
@@ -103,7 +101,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({ input: "hello" }, metrics_collector: collector)
@@ -122,7 +120,7 @@ RSpec.describe "Observability Integration" do
     it "tracks multiple operations per stage" do
       op1 = create_operation(sets: { a: {} }) { |ns| ns.merge(a: 1) }
       op2 = create_operation(sets: { b: {} }) { |ns| ns.merge(b: 2) }
-      stage = create_stage(name: :multi, mode: :merge, operations: [op1, op2])
+      stage = create_stage(name: :multi, operations: [op1, op2])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({}, metrics_collector: collector)
@@ -135,8 +133,8 @@ RSpec.describe "Observability Integration" do
     it "tracks multiple stages" do
       op1 = create_operation(sets: { a: {} }) { |ns| ns.merge(a: 1) }
       op2 = create_operation(reads: { a: {} }, sets: { b: {} }) { |ns| ns.merge(b: 2) }
-      stage1 = create_stage(name: :first, mode: :merge, operations: [op1])
-      stage2 = create_stage(name: :second, mode: :merge, operations: [op2])
+      stage1 = create_stage(name: :first, operations: [op1])
+      stage2 = create_stage(name: :second, operations: [op2])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage1, stage2])
 
       pipe.call({}, metrics_collector: collector)
@@ -155,7 +153,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage])
 
       pipe.call({ input: "hello" }, debugger: debugger)
@@ -169,7 +167,7 @@ RSpec.describe "Observability Integration" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: :transform, mode: :merge, operations: [op])
+      stage = create_stage(name: :transform, operations: [op])
       pipe = Brainpipe::Pipe.new(name: :test_pipe, stages: [stage], debug: true)
 
       output = StringIO.new

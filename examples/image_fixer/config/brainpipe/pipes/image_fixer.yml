@@ -2,7 +2,6 @@ name: image_fixer
 
 stages:
   - name: analyze
-    mode: merge
     operations:
       - type: Baml
         model: gemini
@@ -15,7 +14,6 @@ stages:
             fix_instructions: fix_instructions
 
   - name: fix
-    mode: merge
     operations:
       - type: BamlRaw
         model: gemini_flash_image

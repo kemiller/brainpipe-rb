@@ -56,7 +56,6 @@ name: image_fixer
 
 stages:
   - name: analyze
-    mode: merge
     operations:
       - type: Brainpipe::Operations::Baml
         model: gemini
@@ -69,7 +68,6 @@ stages:
             fix_instructions: fix_instructions
 
   - name: fix
-    mode: merge
     operations:
       - type: Brainpipe::Operations::BamlRaw
         model: gemini_flash_image
@@ -268,7 +266,6 @@ name: entity_extractor
 
 stages:
   - name: extract
-    mode: merge
     operations:
       - type: Brainpipe::Operations::LlmCall
         model: openai  # Can swap to anthropic or gemini
@@ -447,7 +444,6 @@ name: image_describer
 
 stages:
   - name: describe
-    mode: merge
     operations:
       - type: Brainpipe::Operations::LlmCall
         model: gpt4_vision
@@ -509,7 +505,6 @@ name: image_generator
 
 stages:
   - name: generate
-    mode: merge
     operations:
       - type: Brainpipe::Operations::LlmCall
         model: gemini_imagen

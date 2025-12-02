@@ -959,81 +959,94 @@ Explode fans out array fields from 1 namespace into N namespaces.
 
 ---
 
-### Task 21.7: Integration tests
+## Phase 22: Remove Stage Modes
 
-- [ ] Create integration test with Link in a pipe
-- [ ] Create integration test with Collapse in a pipe
-- [ ] Create integration test with Explode in a pipe
-- [ ] Test Collapse followed by Explode (round-trip)
-- [ ] Test Explode followed by Collapse (fan-out then merge back)
+Stage modes (merge, fan_out, batch) are being removed. The Explode, Collapse, and Filter operations now handle namespace count changes, making stage modes redundant.
 
----
+### Task 22.1: Update Stage class
+**File:** `lib/brainpipe/stage.rb`
 
-### Task 21.8: Update README documentation
+- [ ] Remove `MODES` constant
+- [ ] Remove `mode` attribute and parameter from `initialize`
+- [ ] Remove `validate_mode!` method
+- [ ] Remove `execute_merge`, `execute_fan_out`, `execute_batch` methods
+- [ ] Simplify `execute_stage` to pass namespace array directly to operations
+- [ ] Remove `MERGE_STRATEGIES` constant
+- [ ] Remove `merge_strategy` attribute and parameter
+- [ ] Remove merge strategy methods (`merge_at_index`, `merge_last_in`, `merge_first_in`, `merge_collate`, `merge_disjoint`)
+- [ ] Remove `validate_disjoint!` method
+
+### Task 22.2: Update Pipe class
+**File:** `lib/brainpipe/pipe.rb`
+
+- [ ] Remove `validate_last_stage_mode!` method
+- [ ] Remove call to `validate_last_stage_mode!` in `validate!`
+
+### Task 22.3: Update Loader
+**File:** `lib/brainpipe/loader.rb`
+
+- [ ] Remove `mode:` parsing from stage YAML
+- [ ] Remove `merge_strategy:` parsing from stage YAML
+- [ ] Update Stage constructor call to not pass mode/merge_strategy
+
+### Task 22.4: Update example YAML files
+Remove `mode:` from all pipeline configurations:
+
+- [ ] `examples/data_transformer/config/brainpipe/pipes/data_transformer.yml`
+- [ ] `examples/entity_extractor/config/brainpipe/pipes/entity_extractor.yml`
+- [ ] `examples/image_fixer/config/brainpipe/pipes/image_fixer.yml`
+- [ ] `examples/rails_app/config/brainpipe/echo.yml`
+
+### Task 22.5: Update Stage specs
+**File:** `spec/brainpipe/stage_spec.rb`
+
+- [ ] Remove mode validation tests
+- [ ] Remove merge strategy tests
+- [ ] Remove mode-specific execution tests (merge mode, fan_out mode, batch mode contexts)
+- [ ] Update all `described_class.new` calls to not pass `mode:`
+- [ ] Add tests for simplified stage execution (operations receive full namespace array)
+
+### Task 22.6: Update Pipe specs
+**File:** `spec/brainpipe/pipe_spec.rb`
+
+- [ ] Remove "last stage mode" context and tests
+- [ ] Update `create_stage` helper to not require `mode:` parameter
+- [ ] Update all test stage creations
+
+### Task 22.7: Update Loader specs
+**File:** `spec/brainpipe/loader_spec.rb`
+
+- [ ] Remove assertions checking `stage.mode`
+- [ ] Update test YAML fixtures to not include `mode:`
+
+### Task 22.8: Update other specs
+- [ ] `spec/brainpipe/operations/integration_spec.rb` - Update stage creation
+- [ ] `spec/brainpipe/observability/integration_spec.rb` - Update stage creation
+- [ ] `spec/brainpipe/observability/debug_spec.rb` - Update stage creation
+- [ ] `spec/brainpipe/type_flow_spec.rb` - Update stage creation
+- [ ] `spec/brainpipe/executor_spec.rb` - Update if needed
+
+### Task 22.9: Update README.md
 **File:** `README.md`
 
-- [ ] Add Link operation documentation (replace Transform section)
-- [ ] Add Collapse operation documentation (replace Merge section)
-- [ ] Add Explode operation documentation
-- [ ] Add deprecation notices for Transform and Merge
-- [ ] Update Built-in Operations section to list new operations first
+- [ ] Remove "Stages" section content about modes (merge, fan_out, batch)
+- [ ] Remove `mode:` from all YAML examples
+- [ ] Remove merge strategy documentation
+- [ ] Update stage documentation to explain simplified model
+- [ ] Update "Data Transformation Example" to show simpler config without modes
 
----
+### Task 22.10: Update EXAMPLE.md
+**File:** `EXAMPLE.md`
 
-## Phase Summary (21)
+- [ ] Remove `mode: merge` from all pipeline YAML examples
 
-| Phase | Description | Test Command |
-|-------|-------------|--------------|
-| 21 | Transformation Ops | `bundle exec rspec spec/brainpipe/operations/{link,collapse,explode}_spec.rb` |
+### Task 22.11: Run full test suite
+- [ ] Run `bundle exec rspec` and fix any failures
 
-**Full test suite:** `bundle exec rspec`
-
----
-
-## Implementation Notes (Phase 21)
-
-### Link Operation Design
-
-The Link operation is the foundation for property manipulation:
-- **copy**: Duplicates a field to a new name (source preserved)
-- **move**: Moves a field to a new name (source deleted)
-- **set**: Sets constant values
-- **delete**: Removes fields
-
-Operation order (copy → move → set → delete) is critical:
-1. Copy first allows backing up a field before moving it
-2. Move second so targets exist for set/delete
-3. Set third to override any values
-4. Delete last to clean up after all other operations
-
-### Collapse Strategy Semantics
-
-| Strategy | Behavior | Output Type |
-|----------|----------|-------------|
-| `:collect` | Gather all values | Array of input type |
-| `:sum` | Add numbers | Same numeric type |
-| `:concat` | Join strings/arrays | String or Array |
-| `:first` | Take first value | Same as input |
-| `:last` | Take last value | Same as input |
-| `:equal` | All must match | Same as input |
-| `:distinct` | All unique | Array of input type |
-
-### Explode Cardinality Validation
-
-When multiple fields are split, they must have the same array length:
-```ruby
-split: { results: :result, images: :image }
-# results.length must equal images.length
-```
-
-This ensures proper 1:1 mapping across split fields.
-
-### Integration with Stage Modes
-
-Count-changing operations (Collapse, Explode, Filter) should typically be:
-- Alone in their stage
-- Not mixed with parallel operations
-- FR-2.14 suggests warning/error when violated
+### Task 22.12: Run example scripts
+- [ ] Run `examples/entity_extractor/run.rb` and verify it works
+- [ ] Run `examples/data_transformer/run.rb` and verify it works
+- [ ] Run `examples/image_fixer/run.rb` and verify it works (requires GOOGLE_AI_API_KEY)
 
 ---
 

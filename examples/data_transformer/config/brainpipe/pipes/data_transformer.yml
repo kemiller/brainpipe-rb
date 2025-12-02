@@ -2,7 +2,6 @@ name: data_transformer
 
 stages:
   - name: explode_items
-    mode: batch
     operations:
       - type: Explode
         options:
@@ -13,7 +12,6 @@ stages:
             prices: price
 
   - name: enrich_items
-    mode: batch
     operations:
       - type: Link
         options:
@@ -23,7 +21,6 @@ stages:
             currency: "USD"
 
   - name: collapse_items
-    mode: batch
     operations:
       - type: Collapse
         options:
@@ -36,7 +33,6 @@ stages:
             currency: equal
 
   - name: finalize
-    mode: merge
     operations:
       - type: Link
         options:

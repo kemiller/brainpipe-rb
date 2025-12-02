@@ -2,7 +2,7 @@ require "timeout"
 
 module Brainpipe
   # A pipeline that chains stages together for sequential execution.
-  # Pipes validate stage compatibility and ensure the last stage is merge mode.
+  # Pipes validate stage compatibility.
   #
   # @example Creating and running a pipe
   #   pipe = Brainpipe::Pipe.new(
@@ -144,7 +144,6 @@ module Brainpipe
 
     def validate!
       validate_has_stages!
-      validate_last_stage_mode!
       validate_stage_compatibility!
       true
     end
@@ -154,15 +153,6 @@ module Brainpipe
     def validate_has_stages!
       if stages.empty?
         raise ConfigurationError, "Pipe '#{name}' must have at least one stage"
-      end
-    end
-
-    def validate_last_stage_mode!
-      return if stages.empty?
-
-      unless stages.last.mode == :merge
-        raise ConfigurationError,
-          "Pipe '#{name}' last stage must be merge mode, got '#{stages.last.mode}'"
       end
     end
 

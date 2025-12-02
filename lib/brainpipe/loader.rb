@@ -96,8 +96,6 @@ module Brainpipe
       name = yaml_hash["name"] || yaml_hash[:name]
       raise InvalidYAMLError, "Stage definition missing 'name'" unless name
 
-      mode = yaml_hash["mode"] || yaml_hash[:mode] || "merge"
-      merge_strategy = yaml_hash["merge_strategy"] || yaml_hash[:merge_strategy] || "last_in"
       timeout = yaml_hash["timeout"] || yaml_hash[:timeout]
       ops_yaml = yaml_hash["operations"] || yaml_hash[:operations] || []
 
@@ -105,9 +103,7 @@ module Brainpipe
 
       Stage.new(
         name: name,
-        mode: mode.to_sym,
         operations: operations,
-        merge_strategy: merge_strategy.to_sym,
         timeout: timeout,
         debug: configuration.debug
       )

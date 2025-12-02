@@ -894,7 +894,6 @@ name: my-api
 
 stages:
   - name: extract
-    mode: merge
     operations:
       - type: CallBAML
         model: default
@@ -902,7 +901,6 @@ stages:
           function: ExtractData
 
   - name: process
-    mode: fan_out
     operations:
       - type: SummarizeText
         model: fast
@@ -912,12 +910,10 @@ stages:
           size: 1024x1024
 
   - name: validate
-    mode: merge
     operations:
-      - type: ValidateData    # no model needed
+      - type: ValidateData
 
   - name: combine
-    mode: merge
     operations:
       - type: AggregateResults
 ```
@@ -954,9 +950,11 @@ result = pipe.call(input_text: "...")
 
 **Built-in operations** ship with the gem and are always available under `Brainpipe::Operations::*`:
 - `Brainpipe::Operations::BAML` - BAML function wrapper
-- `Brainpipe::Operations::Transform` - property mapping
+- `Brainpipe::Operations::LlmCall` - direct LLM calls with Mustache templates
+- `Brainpipe::Operations::Link` - property rewiring (copy, move, set, delete)
+- `Brainpipe::Operations::Collapse` - merge N namespaces into 1
+- `Brainpipe::Operations::Explode` - split 1 namespace into N
 - `Brainpipe::Operations::Filter` - conditional pass-through
-- `Brainpipe::Operations::Merge` - combine properties
 - `Brainpipe::Operations::Log` - debug logging
 - etc.
 
@@ -1160,16 +1158,12 @@ end
 
 ```ruby
 class Stage
-  attr_reader :name, :mode, :operations, :merge_strategy
+  attr_reader :name, :operations
 
-  MODES = [:merge, :fan_out, :batch].freeze
-  MERGE_STRATEGIES = [:last_in, :first_in, :collate, :disjoint].freeze
-
-  def initialize(name:, mode:, operations:, merge_strategy: :last_in)
+  def initialize(name:, operations:)
   def call(namespace_array)     # Execute stage
   def inputs                    # Aggregated from operations
   def outputs                   # Aggregated from operations
-  def validate!                 # For disjoint strategy, verify no overlapping sets
 end
 ```
 
@@ -1407,58 +1401,30 @@ end
 
 ## Data Flow
 
-### Stage Modes Explained
+### Stage Execution
 
-**Merge Mode**: Combine all incoming namespaces into one (last wins), then run operations.
-```
-Input: [ns1, ns2, ns3]  →  merge (last wins)  →  ns  →  [Op A, Op B] (parallel)  →  [ns']
-```
+Each stage receives an array of namespaces, passes it to all operations in parallel, and returns an array of namespaces.
 
-**Fan-Out Mode**: Each incoming namespace gets its own operation instance(s), run concurrently.
 ```
-Input: [ns1, ns2, ns3]  →  fork  →  [Op A(ns1), Op A(ns2), Op A(ns3)]  →  [ns1', ns2', ns3']
-                                    (concurrent execution)
+Input: [ns1, ns2, ns3]  →  [Op A, Op B] (parallel)  →  [ns1', ns2', ns3']
 ```
 
-**Batch Mode**: Pass entire array to operations, they handle iteration internally.
-```
-Input: [ns1, ns2, ns3]  →  [Op A]([ns1, ns2, ns3])  →  [ns1', ns2', ...]
-```
+Operations receive the full namespace array and are responsible for their own iteration. Use the built-in transformation operations for namespace count changes:
+
+- **Explode**: Split 1 namespace into N (fan-out data)
+- **Collapse**: Merge N namespaces into 1 (combine results)
+- **Filter**: Remove namespaces based on conditions
 
 ### Multiple Operations in a Stage
 
-**All operations within a stage run in parallel**, regardless of mode. Sequential processing requires separate stages.
+**All operations within a stage run in parallel.** Sequential processing requires separate stages.
 
 ```
 Stage with [Op A, Op B, Op C]:
 
-  Non fan-out modes:
-    namespace → fork → [Op A(ns), Op B(ns), Op C(ns)] → merge results
-                       (all run concurrently on same input)
-
-  Fan-out mode:
-    [ns1, ns2] → [Op A(ns1), Op B(ns1), Op C(ns1),   → [ns1', ns2']
-                  Op A(ns2), Op B(ns2), Op C(ns2)]
-                 (N × M instances, all concurrent)
+  [ns1, ns2] → fork → [Op A([ns1, ns2]), Op B([ns1, ns2]), Op C([ns1, ns2])]
+                      (all run concurrently on same input)
 ```
-
-**Merge strategy** for parallel operation results is configured per-stage:
-
-```yaml
-stages:
-  - name: enrich
-    mode: merge
-    merge_strategy: last_in    # default: last to complete wins
-    operations:
-      - type: EnrichA
-      - type: EnrichB
-```
-
-Available strategies:
-- `last_in` (default): Last operation to complete wins for conflicting properties
-- `first_in`: First operation to complete wins
-- `collate`: Conflicting properties become arrays containing all values
-- `disjoint`: Validate at config load that operations have no overlapping `sets` (error if conflict possible)
 
 ### Example Pipeline
 
@@ -1467,7 +1433,7 @@ Available strategies:
 │                           PIPE                                   │
 │  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐      │
 │  │ Stage 1 │───▶│ Stage 2 │───▶│ Stage 3 │───▶│ Stage 4 │      │
-│  │ (batch) │    │(fan_out)│    │(fan_out)│    │ (merge) │      │
+│  │[Explode]│    │[Process]│    │[Enrich] │    │[Collapse│      │
 │  └─────────┘    └─────────┘    └─────────┘    └─────────┘      │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -1475,27 +1441,27 @@ Input: Single Namespace { items: [a, b, c, d, e] }
        │
        ▼
 ┌──────────────┐
-│   Stage 1    │  mode: batch
-│  [Splitter]  │  Takes array, outputs multiple namespaces
+│   Stage 1    │  Explode operation
+│  [Explode]   │  Splits array into individual namespaces
 └──────────────┘  Output: [ns1, ns2, ns3, ns4, ns5]  (one per item)
        │
        ▼
 ┌──────────────┐
-│   Stage 2    │  mode: fan_out, single operation
-│  [ProcessOp] │  5 instances created, one per namespace
-└──────────────┘  Runs concurrently: [Op(ns1), Op(ns2), Op(ns3), Op(ns4), Op(ns5)]
-       │          Output: [ns1', ns2', ns3', ns4', ns5']
+│   Stage 2    │  Single operation processes each namespace
+│  [ProcessOp] │  Receives array, returns transformed array
+└──────────────┘  Output: [ns1', ns2', ns3', ns4', ns5']
+       │
        ▼
 ┌──────────────┐
-│   Stage 3    │  mode: fan_out, multiple operations
-│[EnrichA,     │  Each namespace gets both ops in parallel
-│ EnrichB]     │  5 × 2 = 10 operation instances, all concurrent
-└──────────────┘  Results merged per-namespace
-       │          Output: [ns1'', ns2'', ns3'', ns4'', ns5'']
+│   Stage 3    │  Multiple parallel operations
+│[EnrichA,     │  Both ops receive same input array
+│ EnrichB]     │  Results combined
+└──────────────┘  Output: [ns1'', ns2'', ns3'', ns4'', ns5'']
+       │
        ▼
 ┌──────────────┐
-│   Stage 4    │  mode: merge
-│ [Aggregator] │  Merges all namespaces, runs aggregation
+│   Stage 4    │  Collapse operation
+│  [Collapse]  │  Merges all namespaces into one
 └──────────────┘
        │
        ▼
@@ -1504,10 +1470,10 @@ Output: Single Namespace { result: "..." }
 
 ### Key Points
 
-1. **Fan-out** creates **N × M** operation instances (N namespaces × M operations)
-2. **All operations in a stage run in parallel** - use separate stages for sequential processing
-3. **Merge mode** collapses multiple namespaces into one before running operations
-4. **Batch mode** passes the entire array to operations that handle iteration internally
+1. **All operations in a stage run in parallel** - use separate stages for sequential processing
+2. **Explode** splits data for parallel processing
+3. **Collapse** combines results back together
+4. **Operations handle their own iteration** - they receive and return namespace arrays
 
 ---
 

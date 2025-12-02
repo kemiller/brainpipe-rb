@@ -63,7 +63,6 @@ name: entity_extractor
 
 stages:
   - name: extract
-    mode: merge
     operations:
       - type: LlmCall
         model: openai
@@ -134,8 +133,6 @@ timeout: 30  # Optional: global timeout in seconds
 
 stages:
   - name: stage_name
-    mode: merge|fan_out|batch
-    merge_strategy: last_in|first_in|collate|disjoint  # Optional
     timeout: 10  # Optional: stage-specific timeout
     operations:
       - type: OperationClassName
@@ -143,6 +140,8 @@ stages:
         options:
           # Operation-specific configuration
 ```
+
+Operations within a stage run in parallel and their results are merged (last-wins for overlapping properties).
 
 ### Built-in Operations for Config Files
 
@@ -166,7 +165,6 @@ name: data_transformer
 
 stages:
   - name: explode_items
-    mode: batch
     operations:
       - type: Explode
         options:
@@ -176,7 +174,6 @@ stages:
             quantities: quantity
 
   - name: enrich_items
-    mode: batch
     operations:
       - type: Link
         options:
@@ -186,7 +183,6 @@ stages:
             currency: "USD"
 
   - name: collapse_items
-    mode: batch
     operations:
       - type: Collapse
         options:
@@ -231,7 +227,6 @@ pipe = Brainpipe::Pipe.new(
   stages: [
     Brainpipe::Stage.new(
       name: :process,
-      mode: :merge,
       operations: [SummarizeText.new]
     )
   ]
@@ -289,44 +284,17 @@ end
 
 ### Stages
 
-Stages group operations and define execution modes:
-
-```ruby
-# Merge mode: combine all namespaces, run operations, return single result
-stage = Brainpipe::Stage.new(
-  name: :combine,
-  mode: :merge,
-  operations: [Op1.new, Op2.new]
-)
-
-# Fan-out mode: run operations on each namespace in parallel
-stage = Brainpipe::Stage.new(
-  name: :parallel,
-  mode: :fan_out,
-  operations: [ProcessItem.new]
-)
-
-# Batch mode: pass entire namespace array to operations
-stage = Brainpipe::Stage.new(
-  name: :batch,
-  mode: :batch,
-  operations: [BatchOp.new]
-)
-```
-
-**Merge Strategies** (for parallel operations in a stage):
+Stages group operations for execution. Operations within a stage run in parallel, and their results are merged:
 
 ```ruby
 stage = Brainpipe::Stage.new(
-  name: :parallel_ops,
-  mode: :merge,
-  merge_strategy: :last_in,   # Last to complete wins (default)
-  # merge_strategy: :first_in,  # First to complete wins
-  # merge_strategy: :collate,   # Conflicts become arrays
-  # merge_strategy: :disjoint,  # Error if operations overlap
-  operations: [Op1.new, Op2.new]
+  name: :process,
+  operations: [Op1.new, Op2.new],
+  timeout: 10  # Optional timeout in seconds
 )
 ```
+
+When multiple operations set the same property, the last one to complete wins.
 
 ### Pipes
 
@@ -598,7 +566,6 @@ pipe = Brainpipe::Pipe.new(
 # Stage-level timeout
 stage = Brainpipe::Stage.new(
   name: :quick,
-  mode: :merge,
   operations: [...],
   timeout: 10
 )
@@ -710,7 +677,6 @@ Reference in pipeline configs by class name:
 # config/brainpipe/pipes/my_pipe.yml
 stages:
   - name: summarize
-    mode: merge
     operations:
       - type: SummarizeOperation
 ```

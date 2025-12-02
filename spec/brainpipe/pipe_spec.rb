@@ -14,19 +14,17 @@ RSpec.describe Brainpipe::Pipe do
     op_class.new
   end
 
-  def create_stage(name:, mode:, operations:, merge_strategy: :last_in)
+  def create_stage(name:, operations:)
     Brainpipe::Stage.new(
       name: name,
-      mode: mode,
-      operations: operations,
-      merge_strategy: merge_strategy
+      operations: operations
     )
   end
 
   describe "#initialize" do
     it "stores the name as a symbol" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) { |ns| ns.merge(output: "done") }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.name).to eq(:test)
@@ -34,7 +32,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "stores stages frozen" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) { |ns| ns.merge(output: "done") }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.stages).to be_frozen
@@ -42,7 +40,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "stores optional timeout" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage], timeout: 30)
       expect(pipe.timeout).to eq(30)
@@ -50,7 +48,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "defaults timeout to nil" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.timeout).to be_nil
@@ -58,7 +56,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "freezes after initialization" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe).to be_frozen
@@ -70,8 +68,8 @@ RSpec.describe Brainpipe::Pipe do
       op1 = create_operation(reads: { raw_input: { type: String } }, sets: { processed: {} }) { |ns| ns.merge(processed: true) }
       op2 = create_operation(reads: { processed: {} }, sets: { final: {} }) { |ns| ns.merge(final: true) }
 
-      stage1 = create_stage(name: "process", mode: :merge, operations: [op1])
-      stage2 = create_stage(name: "finalize", mode: :merge, operations: [op2])
+      stage1 = create_stage(name: "process", operations: [op1])
+      stage2 = create_stage(name: "finalize", operations: [op2])
 
       pipe = described_class.new(name: "test", stages: [stage1, stage2])
 
@@ -81,7 +79,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "is frozen" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) { |ns| ns.merge(output: "done") }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.inputs).to be_frozen
@@ -89,7 +87,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "returns empty hash when no stages" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.inputs).to eq({})
@@ -103,8 +101,8 @@ RSpec.describe Brainpipe::Pipe do
         ns.merge(final_output: "done")
       end
 
-      stage1 = create_stage(name: "process", mode: :merge, operations: [op1])
-      stage2 = create_stage(name: "finalize", mode: :merge, operations: [op2])
+      stage1 = create_stage(name: "process", operations: [op1])
+      stage2 = create_stage(name: "finalize", operations: [op2])
 
       pipe = described_class.new(name: "test", stages: [stage1, stage2])
 
@@ -114,7 +112,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "is frozen" do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) { |ns| ns.merge(output: "done") }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.outputs).to be_frozen
@@ -129,50 +127,13 @@ RSpec.describe Brainpipe::Pipe do
       end
     end
 
-    context "last stage mode" do
-      it "raises ConfigurationError when last stage is not merge mode" do
-        op = create_operation { |ns| ns }
-        stage = create_stage(name: "fanout", mode: :fan_out, operations: [op])
-
-        expect { described_class.new(name: "test", stages: [stage]) }
-          .to raise_error(Brainpipe::ConfigurationError, /last stage must be merge mode/)
-      end
-
-      it "allows merge mode as last stage" do
-        op = create_operation { |ns| ns }
-        stage = create_stage(name: "final", mode: :merge, operations: [op])
-
-        expect { described_class.new(name: "test", stages: [stage]) }.not_to raise_error
-      end
-
-      it "allows fan_out followed by merge" do
-        op1 = create_operation(sets: { processed: {} }) { |ns| ns.merge(processed: true) }
-        op2 = create_operation(reads: { processed: {} }) { |ns| ns }
-
-        stage1 = create_stage(name: "fanout", mode: :fan_out, operations: [op1])
-        stage2 = create_stage(name: "merge", mode: :merge, operations: [op2])
-
-        expect { described_class.new(name: "test", stages: [stage1, stage2]) }.not_to raise_error
-      end
-
-      it "allows batch followed by merge" do
-        op1 = create_operation(sets: { processed: {} }) { |ns| ns.merge(processed: true) }
-        op2 = create_operation(reads: { processed: {} }) { |ns| ns }
-
-        stage1 = create_stage(name: "batch", mode: :batch, operations: [op1])
-        stage2 = create_stage(name: "merge", mode: :merge, operations: [op2])
-
-        expect { described_class.new(name: "test", stages: [stage1, stage2]) }.not_to raise_error
-      end
-    end
-
     context "stage compatibility" do
       it "raises IncompatibleStagesError when required inputs are missing" do
         op1 = create_operation(sets: { output_a: {} }) { |ns| ns.merge(output_a: "a") }
         op2 = create_operation(reads: { output_b: { type: String } }) { |ns| ns }
 
-        stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-        stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
+        stage1 = create_stage(name: "first", operations: [op1])
+        stage2 = create_stage(name: "second", operations: [op2])
 
         expect { described_class.new(name: "test", stages: [stage1, stage2]) }
           .to raise_error(Brainpipe::IncompatibleStagesError, /output_b/)
@@ -182,8 +143,8 @@ RSpec.describe Brainpipe::Pipe do
         op1 = create_operation(sets: { output_a: {} }) { |ns| ns.merge(output_a: "a") }
         op2 = create_operation(reads: { output_a: {} }) { |ns| ns }
 
-        stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-        stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
+        stage1 = create_stage(name: "first", operations: [op1])
+        stage2 = create_stage(name: "second", operations: [op2])
 
         expect { described_class.new(name: "test", stages: [stage1, stage2]) }.not_to raise_error
       end
@@ -192,8 +153,8 @@ RSpec.describe Brainpipe::Pipe do
         op1 = create_operation(sets: { output_a: {} }) { |ns| ns.merge(output_a: "a") }
         op2 = create_operation(reads: { output_a: {}, missing: { optional: true } }) { |ns| ns }
 
-        stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-        stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
+        stage1 = create_stage(name: "first", operations: [op1])
+        stage2 = create_stage(name: "second", operations: [op2])
 
         expect { described_class.new(name: "test", stages: [stage1, stage2]) }.not_to raise_error
       end
@@ -205,9 +166,9 @@ RSpec.describe Brainpipe::Pipe do
         end
         op3 = create_operation(reads: { from_stage1: {}, from_stage2: {} }) { |ns| ns }
 
-        stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-        stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
-        stage3 = create_stage(name: "third", mode: :merge, operations: [op3])
+        stage1 = create_stage(name: "first", operations: [op1])
+        stage2 = create_stage(name: "second", operations: [op2])
+        stage3 = create_stage(name: "third", operations: [op3])
 
         expect { described_class.new(name: "test", stages: [stage1, stage2, stage3]) }.not_to raise_error
       end
@@ -217,9 +178,9 @@ RSpec.describe Brainpipe::Pipe do
         op2 = create_operation(reads: { a: {} }, sets: { b: {} }) { |ns| ns.merge(b: 2) }
         op3 = create_operation(reads: { c: { type: String } }) { |ns| ns }
 
-        stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-        stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
-        stage3 = create_stage(name: "third", mode: :merge, operations: [op3])
+        stage1 = create_stage(name: "first", operations: [op1])
+        stage2 = create_stage(name: "second", operations: [op2])
+        stage3 = create_stage(name: "third", operations: [op3])
 
         expect { described_class.new(name: "test", stages: [stage1, stage2, stage3]) }
           .to raise_error(Brainpipe::IncompatibleStagesError, /c/)
@@ -228,7 +189,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "returns true when valid" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
 
       pipe = described_class.new(name: "test", stages: [stage])
       expect(pipe.validate!).to be true
@@ -240,7 +201,7 @@ RSpec.describe Brainpipe::Pipe do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: "process", mode: :merge, operations: [op])
+      stage = create_stage(name: "process", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       result = pipe.call(input: "hello")
@@ -252,7 +213,7 @@ RSpec.describe Brainpipe::Pipe do
       op = create_operation(reads: { input: {} }, sets: { output: {} }) do |ns|
         ns.merge(output: ns[:input].upcase)
       end
-      stage = create_stage(name: "process", mode: :merge, operations: [op])
+      stage = create_stage(name: "process", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       result = pipe.call(Brainpipe::Namespace.new(input: "world"))
@@ -262,7 +223,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "raises EmptyInputError for nil properties" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "process", mode: :merge, operations: [op])
+      stage = create_stage(name: "process", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       expect { pipe.call(nil) }
@@ -285,9 +246,9 @@ RSpec.describe Brainpipe::Pipe do
         ns.merge(step3: true)
       end
 
-      stage1 = create_stage(name: "first", mode: :merge, operations: [op1])
-      stage2 = create_stage(name: "second", mode: :merge, operations: [op2])
-      stage3 = create_stage(name: "third", mode: :merge, operations: [op3])
+      stage1 = create_stage(name: "first", operations: [op1])
+      stage2 = create_stage(name: "second", operations: [op2])
+      stage3 = create_stage(name: "third", operations: [op3])
 
       pipe = described_class.new(name: "test", stages: [stage1, stage2, stage3])
       pipe.call({})
@@ -295,9 +256,9 @@ RSpec.describe Brainpipe::Pipe do
       expect(execution_order).to eq([:stage1, :stage2, :stage3])
     end
 
-    it "returns a single Namespace from merged last stage" do
+    it "returns a single Namespace from last stage" do
       op = create_operation(sets: { result: {} }) { |ns| ns.merge(result: "done") }
-      stage = create_stage(name: "final", mode: :merge, operations: [op])
+      stage = create_stage(name: "final", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       result = pipe.call({})
@@ -314,8 +275,8 @@ RSpec.describe Brainpipe::Pipe do
         ns.merge(final: ns[:processed] + "_final")
       end
 
-      stage1 = create_stage(name: "process", mode: :merge, operations: [op1])
-      stage2 = create_stage(name: "finalize", mode: :merge, operations: [op2])
+      stage1 = create_stage(name: "process", operations: [op1])
+      stage2 = create_stage(name: "finalize", operations: [op2])
       pipe = described_class.new(name: "test", stages: [stage1, stage2])
 
       result = pipe.call(input: "start")
@@ -340,9 +301,9 @@ RSpec.describe Brainpipe::Pipe do
         ns.merge(result: ns[:processed].join(", "))
       end
 
-      stage1 = create_stage(name: "transform", mode: :merge, operations: [transform_op])
-      stage2 = create_stage(name: "process", mode: :merge, operations: [process_op])
-      stage3 = create_stage(name: "finalize", mode: :merge, operations: [final_op])
+      stage1 = create_stage(name: "transform", operations: [transform_op])
+      stage2 = create_stage(name: "process", operations: [process_op])
+      stage3 = create_stage(name: "finalize", operations: [final_op])
 
       pipe = described_class.new(name: "pipeline", stages: [stage1, stage2, stage3])
       result = pipe.call(text: "hello world foo")
@@ -358,12 +319,7 @@ RSpec.describe Brainpipe::Pipe do
         ns.merge(enriched_b: "#{ns[:input]}_b")
       end
 
-      stage = create_stage(
-        name: "enrich",
-        mode: :merge,
-        operations: [enrich_a, enrich_b],
-        merge_strategy: :disjoint
-      )
+      stage = create_stage(name: "enrich", operations: [enrich_a, enrich_b])
       pipe = described_class.new(name: "test", stages: [stage])
 
       result = pipe.call(input: "test")
@@ -375,7 +331,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "handles errors from stages" do
       error_op = create_operation { |ns| raise "boom" }
-      stage = create_stage(name: "error", mode: :merge, operations: [error_op])
+      stage = create_stage(name: "error", operations: [error_op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       expect { pipe.call({}) }.to raise_error(RuntimeError, "boom")
@@ -385,7 +341,7 @@ RSpec.describe Brainpipe::Pipe do
   describe "timeout behavior" do
     it "stores pipe timeout" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "test", mode: :merge, operations: [op])
+      stage = create_stage(name: "test", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage], timeout: 30)
 
       expect(pipe.timeout).to eq(30)
@@ -393,7 +349,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "defaults timeout to nil" do
       op = create_operation { |ns| ns }
-      stage = create_stage(name: "test", mode: :merge, operations: [op])
+      stage = create_stage(name: "test", operations: [op])
       pipe = described_class.new(name: "test", stages: [stage])
 
       expect(pipe.timeout).to be_nil
@@ -403,7 +359,7 @@ RSpec.describe Brainpipe::Pipe do
       fast_op = create_operation(sets: { result: {} }) do |ns|
         ns.merge(result: "done")
       end
-      stage = create_stage(name: "fast", mode: :merge, operations: [fast_op])
+      stage = create_stage(name: "fast", operations: [fast_op])
       pipe = described_class.new(name: "test", stages: [stage], timeout: 5)
 
       result = pipe.call({})
@@ -413,7 +369,7 @@ RSpec.describe Brainpipe::Pipe do
 
     it "passes timeout configuration to stages" do
       op = create_operation(sets: { result: {} }) { |ns| ns.merge(result: "done") }
-      stage = Brainpipe::Stage.new(name: "test", mode: :merge, operations: [op], timeout: 10)
+      stage = Brainpipe::Stage.new(name: "test", operations: [op], timeout: 10)
       pipe = described_class.new(name: "test", stages: [stage], timeout: 5)
 
       result = pipe.call({})
